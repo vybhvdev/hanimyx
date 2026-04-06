@@ -72,51 +72,59 @@ export default class Hanime {
   }
 
   public async getStreams(slug: string, videoId?: number, info?: any) {
-    // 1. First, check if the info object contains a valid manifest with real URLs
-    if (info?.videos_manifest?.servers) {
-        const streams = info.videos_manifest.servers
-            .flatMap((s: any) => s.streams)
-            .filter((s: any) => s.kind !== "premium_alert");
+    // 1. If we have placeholders, we MUST call the manifest API.
+    // The v7 manifest API requires a precise signature.
+    // We will try several message formats if the first one fails.
+    
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+    
+    // Attempt 1: Message = timestamp (standard web2)
+    let signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
+    let response = await this.fetchManifest(manifestUrl, signature, timestamp, slug);
 
-        // Use the stream URL directly if it's not a placeholder
-        if (streams.length > 0 && !streams[0].url.includes("streamable.cloud")) {
-            return streams;
-        }
+    // Attempt 2: Message = id + timestamp (sometimes used in v7)
+    if (!response.ok && videoId) {
+        const message = `${videoId}${timestamp}`;
+        signature = crypto.createHmac("sha256", this.SECRET).update(message).digest("hex");
+        response = await this.fetchManifest(manifestUrl, signature, timestamp, slug);
     }
 
-    // 2. If Nuxt state has placeholders or is missing, we MUST use the manifest API.
-    // The key to a successful manifest API request is the correct signature.
-    // Some endpoints use cached.freeanimehentai.net
-    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    
-    // We'll try the most likely message format: just the timestamp.
-    // If this fails, the next logical step would be id + timestamp.
-    const signature = crypto
-      .createHmac("sha256", this.SECRET)
-      .update(timestamp)
-      .digest("hex");
-
-    const response = await fetch(manifestUrl, {
-        headers: {
-            ...this.HEADERS,
-            'x-signature': signature,
-            'x-time': timestamp,
-            'x-signature-version': 'web2',
-            'Referer': `https://hanime.tv/videos/hentai/${slug}`,
-            'Origin': 'https://hanime.tv',
-        }
-    });
+    // Attempt 3: Use different domain (cached.freeanimehentai.net)
+    if (!response.ok) {
+        const altUrl = `https://cached.freeanimehentai.net/rapi/v7/videos_manifests/${slug}`;
+        signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
+        response = await this.fetchManifest(altUrl, signature, timestamp, slug);
+    }
 
     if (response.ok) {
         const json = await response.json();
         return json.videos_manifest.servers
             .flatMap((s: any) => s.streams)
-            .filter((s: any) => s.kind !== "premium_alert");
+            .filter((s: any) => s.kind !== "premium_alert" && s.url && !s.url.includes("streamable.cloud"));
     }
 
-    console.error(`Manifest API failed for ${slug} with status: ${response.status}`);
+    // Final Fallback: Return what we have from Nuxt if it's not a placeholder
+    if (info?.videos_manifest?.servers) {
+        return info.videos_manifest.servers
+            .flatMap((s: any) => s.streams)
+            .filter((s: any) => s.kind !== "premium_alert" && s.url && !s.url.includes("streamable.cloud"));
+    }
+
     return [];
+  }
+
+  private async fetchManifest(url: string, signature: string, timestamp: string, slug: string) {
+      return fetch(url, {
+          headers: {
+              ...this.HEADERS,
+              'x-signature': signature,
+              'x-time': timestamp,
+              'x-signature-version': 'web2',
+              'Referer': `https://hanime.tv/videos/hentai/${slug}`,
+              'Origin': 'https://hanime.tv',
+          }
+      });
   }
 
   private mapToVideo(raw: any): any {
