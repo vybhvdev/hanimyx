@@ -1,8 +1,10 @@
 import { load } from "cheerio";
+import crypto from "crypto";
 
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";
   private readonly SEARCH_URL = "https://search.htv-services.com";
+  private readonly SECRET = "865473ac43246402343d6433337a4330";
   private readonly HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -70,15 +72,43 @@ export default class Hanime {
     }
   }
 
-  public async getStreams(info: any) {
-    if (!info || !info.videos_manifest) return [];
-    
-    try {
-        return info.videos_manifest.servers.map((s: any) => s.streams).flat();
-    } catch (e) {
-        console.error("Failed to extract streams from info", e);
-        return [];
+  public async getStreams(slug: string, videoId?: number, info?: any) {
+    // 1. Try to extract from provided info (Nuxt state)
+    if (info && info.videos_manifest && info.videos_manifest.servers) {
+        const streams = info.videos_manifest.servers.map((s: any) => s.streams).flat();
+        // Check if these are real URLs or placeholders
+        if (streams.length > 0 && !streams[0].url.includes("streamable.cloud")) {
+            return streams;
+        }
     }
+
+    // 2. Fallback to API call with correct HMAC signature
+    const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto
+      .createHmac("sha256", this.SECRET)
+      .update(timestamp)
+      .digest("hex");
+
+    const response = await fetch(apiUrl, {
+        headers: {
+            ...this.HEADERS,
+            'x-signature': signature,
+            'x-time': timestamp,
+            'x-signature-version': 'web2',
+            'Referer': `https://hanime.tv/videos/hentai/${slug}`,
+            'Origin': 'https://hanime.tv',
+        }
+    });
+
+    if (response.ok) {
+        const json = await response.json();
+        return json.videos_manifest.servers.map((s: any) => s.streams).flat();
+    } else {
+        console.error(`Streams API failed with status ${response.status}`);
+    }
+
+    return [];
   }
 
   private mapToVideo(raw: any): any {
