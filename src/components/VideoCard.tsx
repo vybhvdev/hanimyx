@@ -15,6 +15,7 @@ interface VideoCardProps {
 export default function VideoCard({ video }: VideoCardProps) {
   const unifiedTags = getUnifiedTags(video.tags).slice(0, 3);
   const durationMin = Math.floor(video.durationMs / 60000);
+  const proxiedUrl = `/api/image?url=${encodeURIComponent(video.posterUrl)}`;
 
   return (
     <a
@@ -23,9 +24,8 @@ export default function VideoCard({ video }: VideoCardProps) {
     >
       <div className="relative aspect-video overflow-hidden bg-white/5">
         <img
-          src={video.posterUrl}
+          src={proxiedUrl}
           alt={video.name}
-          referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold">
