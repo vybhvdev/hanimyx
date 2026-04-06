@@ -1,8 +1,10 @@
 import { load } from "cheerio";
+import crypto from "crypto";
 
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";
   private readonly SEARCH_URL = "https://search.htv-services.com";
+  private readonly SECRET = "865473ac43246402343d6433337a4330";
   private readonly HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -72,14 +74,19 @@ export default class Hanime {
 
   public async getStreams(slug: string) {
     const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
-    const signature = Array.from({ length: 32 }, () => 
-        Math.floor(Math.random() * 16).toString(16)).join('');
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    
+    // Generate HMAC-SHA256 signature using the secret and timestamp
+    const signature = crypto
+      .createHmac("sha256", this.SECRET)
+      .update(timestamp)
+      .digest("hex");
 
     const response = await fetch(apiUrl, {
         headers: {
             ...this.HEADERS,
             'x-signature': signature,
-            'x-time': Math.floor(Date.now() / 1000).toString(),
+            'x-time': timestamp,
             'x-signature-version': 'web2',
             'Referer': 'https://hanime.tv/',
             'Origin': 'https://hanime.tv',
