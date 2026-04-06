@@ -25,6 +25,8 @@ export default function VideoCard({ video }: VideoCardProps) {
         <img
           src={video.posterUrl}
           alt={video.name}
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold">
