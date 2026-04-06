@@ -7,20 +7,20 @@ export default async function WatchPage({
 }: { 
   params: { provider: string; id: string } 
 }) {
-  const { provider, id } = params;
+  const { provider, id: slug } = params;
   const hanime = new Hanime();
 
   if (provider !== 'hanime') {
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet fully implemented</div>;
   }
 
-  // Fetch video info and streams in parallel
-  const [videoInfo, streams] = await Promise.all([
-    hanime.getInfo(id),
-    hanime.getStreams(id)
-  ]);
-
+  // Sequential fetch: First get info (needed for numeric ID), then streams
+  const videoInfo = await hanime.getInfo(slug);
+  
   if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
+
+  const videoId = videoInfo.hentai_video.id;
+  const streams = await hanime.getStreams(slug, videoId);
 
   // Find the best stream URL, ensuring streams is not empty
   const sortedStreams = Array.isArray(streams) ? streams.sort((a: any, b: any) => b.height - a.height) : [];
@@ -34,7 +34,6 @@ export default async function WatchPage({
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* If streamUrl is empty, VideoPlayer will show 'No stream available' */}
           <VideoPlayer url={streamUrl} />
           
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
@@ -86,7 +85,7 @@ export default async function WatchPage({
                     <a 
                       key={ep.id} 
                       href={`/watch/hanime/${ep.slug}`}
-                      className={`block p-2 rounded-lg text-xs transition-colors ${ep.slug === id ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-white/60'}`}
+                      className={`block p-2 rounded-lg text-xs transition-colors ${ep.slug === slug ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-white/60'}`}
                     >
                         {ep.name}
                     </a>

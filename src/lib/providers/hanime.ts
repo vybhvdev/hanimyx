@@ -72,14 +72,21 @@ export default class Hanime {
     }
   }
 
-  public async getStreams(slug: string) {
-    const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+  public async getStreams(slug: string, videoId?: number) {
+    // If we have videoId, use it as a query parameter as some manifest APIs expect it
+    const apiUrl = videoId 
+        ? `https://hanime.tv/rapi/v7/videos_manifests/${slug}?id=${videoId}`
+        : `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+
     const timestamp = Math.floor(Date.now() / 1000).toString();
     
-    // Generate HMAC-SHA256 signature using the secret and timestamp
+    // Some implementations suggest the message is just the timestamp
+    // Others suggest it might include the videoId
+    const message = timestamp; 
+    
     const signature = crypto
       .createHmac("sha256", this.SECRET)
-      .update(timestamp)
+      .update(message)
       .digest("hex");
 
     const response = await fetch(apiUrl, {
@@ -88,14 +95,14 @@ export default class Hanime {
             'x-signature': signature,
             'x-time': timestamp,
             'x-signature-version': 'web2',
-            'Referer': 'https://hanime.tv/',
+            'Referer': `https://hanime.tv/videos/hentai/${slug}`,
             'Origin': 'https://hanime.tv',
         }
     });
 
     if (!response.ok) {
         const text = await response.text();
-        console.error(`Streams API failed with status ${response.status}: ${text}`);
+        console.error(`Streams API failed with status ${response.status} for ${slug} (ID: ${videoId}): ${text}`);
         return [];
     }
 
