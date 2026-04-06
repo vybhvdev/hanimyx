@@ -19,7 +19,7 @@ export default function VideoCard({ video }: VideoCardProps) {
 
   return (
     <a
-      href={`/watch/hanime/${video.slug}`}
+      href={`/watch/hanime/${video.slug}?id=${video.id}`}
       className="group block bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1"
     >
       <div className="relative aspect-video overflow-hidden bg-white/5">
