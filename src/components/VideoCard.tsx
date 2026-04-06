@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getUnifiedTags } from "@/lib/tags";
 
 interface VideoCardProps {
@@ -22,11 +23,12 @@ export default function VideoCard({ video }: VideoCardProps) {
       className="group block bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1"
     >
       <div className="relative aspect-video overflow-hidden bg-white/5">
-        <img 
+        <Image 
           src={video.posterUrl} 
           alt={video.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
         <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold">
           {durationMin}m
