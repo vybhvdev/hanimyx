@@ -1,35 +1,17 @@
 import { load } from "cheerio";
 
-export interface HanimeVideo {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  views: number;
-  interests: number;
-  posterUrl: string;
-  coverUrl: string;
-  brand: {
-    name: string;
-    id: string;
-  };
-  durationMs: number;
-  isCensored: boolean;
-  likes: number;
-  rating: number;
-  tags: string[];
-  createdAt: string;
-  releasedAt: string;
-}
-
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";
   private readonly SEARCH_URL = "https://search.htv-services.com";
+  private readonly HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+  };
 
   public async getRecent(page = 1) {
     const response = await fetch(this.SEARCH_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...this.HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
         blacklist: [],
         brands: [],
@@ -41,15 +23,16 @@ export default class Hanime {
       }),
     });
 
+    if (!response.ok) return [];
     const data = await response.json();
-    const hits = JSON.parse(data.hits);
+    const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
     return hits.map(this.mapToVideo);
   }
 
   public async search(query: string, page = 1) {
     const response = await fetch(this.SEARCH_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...this.HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
         blacklist: [],
         brands: [],
@@ -60,24 +43,31 @@ export default class Hanime {
         tags_mode: "AND",
       }),
     });
+    if (!response.ok) return [];
     const data = await response.json();
-    const hits = JSON.parse(data.hits);
+    const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
     return hits.map(this.mapToVideo);
   }
 
   public async getInfo(slug: string) {
     const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: this.HEADERS });
+    if (!response.ok) return null;
+    
     const html = await response.text();
     const $ = load(html);
     const script = $('script:contains("window.__NUXT__")').html();
     if (!script) return null;
     
-    // Simple extraction of the JSON part from NUXT script
-    const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
-    const json = eval(`(${jsonStr})`); // Nuxt state is often JS, eval is risky but common for Nuxt extraction in simple scripts
-    
-    return json.state.data.video;
+    try {
+        const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
+        // Safe evaluation of Nuxt state (it's JS, not JSON)
+        const json = new Function(`return ${jsonStr}`)();
+        return json.state.data.video;
+    } catch (e) {
+        console.error("Failed to parse Nuxt state", e);
+        return null;
+    }
   }
 
   public async getStreams(slug: string) {
@@ -87,14 +77,26 @@ export default class Hanime {
 
     const response = await fetch(apiUrl, {
         headers: {
+            ...this.HEADERS,
             'x-signature': signature,
             'x-time': Math.floor(Date.now() / 1000).toString(),
             'x-signature-version': 'web2',
         }
     });
 
-    const json = await response.json();
-    return json.videos_manifest.servers.map((s: any) => s.streams).flat();
+    if (!response.ok) {
+        const text = await response.text();
+        console.error(`Streams API failed with status ${response.status}: ${text}`);
+        return [];
+    }
+
+    try {
+        const json = await response.json();
+        return json.videos_manifest.servers.map((s: any) => s.streams).flat();
+    } catch (e) {
+        console.error("Failed to parse streams JSON", e);
+        return [];
+    }
   }
 
   private mapToVideo(raw: any): any {
