@@ -1,10 +1,8 @@
 import { load } from "cheerio";
-import crypto from "crypto";
 
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";
   private readonly SEARCH_URL = "https://search.htv-services.com";
-  private readonly SECRET = "865473ac43246402343d6433337a4330";
   private readonly HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -72,45 +70,13 @@ export default class Hanime {
     }
   }
 
-  public async getStreams(slug: string, videoId?: number) {
-    // If we have videoId, use it as a query parameter as some manifest APIs expect it
-    const apiUrl = videoId 
-        ? `https://hanime.tv/rapi/v7/videos_manifests/${slug}?id=${videoId}`
-        : `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
-
-    const timestamp = Math.floor(Date.now() / 1000).toString();
+  public async getStreams(info: any) {
+    if (!info || !info.videos_manifest) return [];
     
-    // Some implementations suggest the message is just the timestamp
-    // Others suggest it might include the videoId
-    const message = timestamp; 
-    
-    const signature = crypto
-      .createHmac("sha256", this.SECRET)
-      .update(message)
-      .digest("hex");
-
-    const response = await fetch(apiUrl, {
-        headers: {
-            ...this.HEADERS,
-            'x-signature': signature,
-            'x-time': timestamp,
-            'x-signature-version': 'web2',
-            'Referer': `https://hanime.tv/videos/hentai/${slug}`,
-            'Origin': 'https://hanime.tv',
-        }
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        console.error(`Streams API failed with status ${response.status} for ${slug} (ID: ${videoId}): ${text}`);
-        return [];
-    }
-
     try {
-        const json = await response.json();
-        return json.videos_manifest.servers.map((s: any) => s.streams).flat();
+        return info.videos_manifest.servers.map((s: any) => s.streams).flat();
     } catch (e) {
-        console.error("Failed to parse streams JSON", e);
+        console.error("Failed to extract streams from info", e);
         return [];
     }
   }
