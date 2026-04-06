@@ -17,7 +17,7 @@ export default async function WatchPage({
   }
 
   const hvId = searchParams.id ? parseInt(searchParams.id) : null;
-  const videoInfo = await hanime.getInfo(slug);
+  const videoInfo = hvId ? null : await hanime.getInfo(slug);
 
   if (!videoInfo && !hvId) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
