@@ -72,59 +72,52 @@ export default class Hanime {
   }
 
   public async getStreams(slug: string, videoId?: number, info?: any) {
-    // 1. If we have placeholders, we MUST call the manifest API.
-    // The v7 manifest API requires a precise signature.
-    // We will try several message formats if the first one fails.
-    
+    // Strategy: manifest API is the only reliable source for non-premium direct URLs
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
     
-    // Attempt 1: Message = timestamp (standard web2)
-    let signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
-    let response = await this.fetchManifest(manifestUrl, signature, timestamp, slug);
+    // Attempt standard URL first
+    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+    const signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
 
-    // Attempt 2: Message = id + timestamp (sometimes used in v7)
-    if (!response.ok && videoId) {
-        const message = `${videoId}${timestamp}`;
-        signature = crypto.createHmac("sha256", this.SECRET).update(message).digest("hex");
-        response = await this.fetchManifest(manifestUrl, signature, timestamp, slug);
+    try {
+        const response = await fetch(manifestUrl, {
+            headers: {
+                ...this.HEADERS,
+                'x-signature': signature,
+                'x-time': timestamp,
+                'x-signature-version': 'web2',
+                'Referer': `https://hanime.tv/videos/hentai/${slug}`,
+                'Origin': 'https://hanime.tv',
+            }
+        });
+
+        if (response.ok) {
+            const json = await response.json();
+            const streams = json.videos_manifest.servers
+                .flatMap((s: any) => s.streams)
+                .filter((st: any) => st.kind !== "premium_alert")
+                .map((st: any) => ({
+                    ...st,
+                    // If url is a placeholder but extra2 has a path, construct it
+                    url: (st.url.includes("streamable.cloud") && st.extra2) 
+                        ? `https://weeb.hanime.tv${st.extra2}` 
+                        : st.url
+                }));
+            
+            if (streams.length > 0) return streams;
+        }
+    } catch (e) {
+        console.error("Manifest API Fetch Error:", e);
     }
 
-    // Attempt 3: Use different domain (cached.freeanimehentai.net)
-    if (!response.ok) {
-        const altUrl = `https://cached.freeanimehentai.net/rapi/v7/videos_manifests/${slug}`;
-        signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
-        response = await this.fetchManifest(altUrl, signature, timestamp, slug);
-    }
-
-    if (response.ok) {
-        const json = await response.json();
-        return json.videos_manifest.servers
-            .flatMap((s: any) => s.streams)
-            .filter((s: any) => s.kind !== "premium_alert" && s.url && !s.url.includes("streamable.cloud"));
-    }
-
-    // Final Fallback: Return what we have from Nuxt if it's not a placeholder
+    // Fallback to Nuxt state if API fails, but filter out placeholders
     if (info?.videos_manifest?.servers) {
         return info.videos_manifest.servers
             .flatMap((s: any) => s.streams)
-            .filter((s: any) => s.kind !== "premium_alert" && s.url && !s.url.includes("streamable.cloud"));
+            .filter((st: any) => st.kind !== "premium_alert" && !st.url.includes("streamable.cloud"));
     }
 
     return [];
-  }
-
-  private async fetchManifest(url: string, signature: string, timestamp: string, slug: string) {
-      return fetch(url, {
-          headers: {
-              ...this.HEADERS,
-              'x-signature': signature,
-              'x-time': timestamp,
-              'x-signature-version': 'web2',
-              'Referer': `https://hanime.tv/videos/hentai/${slug}`,
-              'Origin': 'https://hanime.tv',
-          }
-      });
   }
 
   private mapToVideo(raw: any): any {
