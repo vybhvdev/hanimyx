@@ -81,6 +81,8 @@ export default class Hanime {
             'x-signature': signature,
             'x-time': Math.floor(Date.now() / 1000).toString(),
             'x-signature-version': 'web2',
+            'Referer': 'https://hanime.tv/',
+            'Origin': 'https://hanime.tv',
         }
     });
 

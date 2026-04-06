@@ -11,7 +11,7 @@ export default async function WatchPage({
   const hanime = new Hanime();
 
   if (provider !== 'hanime') {
-    return <div className="p-8 text-center">Provider {provider} not yet fully implemented</div>;
+    return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet fully implemented</div>;
   }
 
   // Fetch video info and streams in parallel
@@ -20,9 +20,13 @@ export default async function WatchPage({
     hanime.getStreams(id)
   ]);
 
-  if (!videoInfo) return <div className="p-8 text-center">Video not found</div>;
+  if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
-  const bestStream = streams.sort((a: any, b: any) => b.height - a.height)[0];
+  // Find the best stream URL, ensuring streams is not empty
+  const sortedStreams = Array.isArray(streams) ? streams.sort((a: any, b: any) => b.height - a.height) : [];
+  const bestStream = sortedStreams.length > 0 ? sortedStreams[0] : null;
+  const streamUrl = bestStream?.url || "";
+
   const videoData = videoInfo.hentai_video;
   const unifiedTags = getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text));
 
@@ -30,7 +34,8 @@ export default async function WatchPage({
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <VideoPlayer url={bestStream?.url} />
+          {/* If streamUrl is empty, VideoPlayer will show 'No stream available' */}
+          <VideoPlayer url={streamUrl} />
           
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">
