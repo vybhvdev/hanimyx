@@ -16,18 +16,15 @@ export default async function WatchPage({
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet fully implemented</div>;
   }
 
-  const hvId = searchParams.id ? parseInt(searchParams.id) : null;
-  const videoInfo = hvId ? null : await hanime.getInfo(slug);
+  const hvIdFromQuery = searchParams.id ? parseInt(searchParams.id) : null;
+  
+  // If we don't have metadata (info), we fetch it server-side.
+  // Note: Metadata API might still work on Vercel even if manifest is blocked.
+  const videoInfo = await hanime.getInfo(slug);
 
-  if (!videoInfo && !hvId) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
+  if (!videoInfo && !hvIdFromQuery) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
-  const videoId = hvId ?? videoInfo?.hentai_video?.id;
-  const streams = videoId ? await hanime.getStreams(videoId) : [];
-
-  const sortedStreams = Array.isArray(streams) ? streams.sort((a: any, b: any) => b.height - a.height) : [];
-  const bestStream = sortedStreams.length > 0 ? sortedStreams[0] : null;
-  const streamUrl = bestStream?.url || "";
-
+  const videoId = hvIdFromQuery ?? videoInfo?.hentai_video?.id;
   const videoData = videoInfo?.hentai_video;
   const unifiedTags = videoInfo ? getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text)) : [];
 
@@ -35,7 +32,12 @@ export default async function WatchPage({
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <VideoPlayer url={streamUrl} />
+          {/* 
+            VideoPlayer now handles manifest fetching client-side 
+            using the videoId to bypass Vercel IP blocking.
+          */}
+          <VideoPlayer videoId={videoId} />
+          
           {videoData && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">

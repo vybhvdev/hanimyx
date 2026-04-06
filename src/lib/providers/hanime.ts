@@ -71,8 +71,12 @@ export default class Hanime {
     }
   }
 
-public async getStreams(hvId: number) {
+  public async getStreams(hvId: number) {
     const ts = Math.floor(Date.now() / 1000).toString();
+    
+    // Use Web Crypto API or a simple hash if possible for browser compatibility
+    // For now, since we're moving this to a client-side component, we'll keep the logic
+    // but ensure it's called from the browser.
     const signature = crypto
       .createHmac("sha256", this.SECRET)
       .update(ts)
@@ -97,6 +101,22 @@ public async getStreams(hvId: number) {
     return (json?.videos_manifest?.servers ?? [])
       .flatMap((s: any) => s.streams)
       .filter((st: any) => st.kind !== "premium_alert" && st.url);
+  }
+
+  // Helper for client-side signature since 'crypto' module isn't in browser
+  public static async generateSignature(ts: string, secret: string) {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const msgData = encoder.encode(ts);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   private mapToVideo(raw: any): any {
