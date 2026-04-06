@@ -4,20 +4,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'hanime.tv',
+        hostname: '**.hanime.tv',
       },
       {
         protocol: 'https',
-        hostname: 'static-cdn.hanime.tv',
+        hostname: '**.hentaihaven.xxx',
       },
       {
         protocol: 'http',
-        hostname: 'hentaihaven.xxx',
+        hostname: '**.hentaihaven.xxx',
       },
-      {
-          protocol: 'https',
-          hostname: 'hentaihaven.xxx',
-      }
     ],
   },
 };
