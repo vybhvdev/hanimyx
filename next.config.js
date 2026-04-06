@@ -8,6 +8,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '**.hanime-cdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'hanime-cdn.com',
+      },
+      {
+        protocol: 'https',
         hostname: '**.hentaihaven.xxx',
       },
       {
