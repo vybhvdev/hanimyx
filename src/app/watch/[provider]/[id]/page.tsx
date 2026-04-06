@@ -19,7 +19,7 @@ export default async function WatchPage({
   if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
   const videoId = videoInfo.hentai_video.id;
-  const streams = await hanime.getStreams(slug, videoId, videoInfo);
+  const streams = await hanime.getStreams(videoId);
 
   // Find the best stream URL, ensuring streams is not empty
   const sortedStreams = Array.isArray(streams) ? streams.sort((a: any, b: any) => b.height - a.height) : [];

@@ -71,53 +71,32 @@ export default class Hanime {
     }
   }
 
-  public async getStreams(slug: string, videoId?: number, info?: any) {
-    // Strategy: manifest API is the only reliable source for non-premium direct URLs
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    
-    // Attempt standard URL first
-    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
-    const signature = crypto.createHmac("sha256", this.SECRET).update(timestamp).digest("hex");
+public async getStreams(hvId: number) {
+    const ts = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto
+      .createHmac("sha256", this.SECRET)
+      .update(ts)
+      .digest("hex");
 
-    try {
-        const response = await fetch(manifestUrl, {
-            headers: {
-                ...this.HEADERS,
-                'x-signature': signature,
-                'x-time': timestamp,
-                'x-signature-version': 'web2',
-                'Referer': `https://hanime.tv/videos/hentai/${slug}`,
-                'Origin': 'https://hanime.tv',
-            }
-        });
+    const response = await fetch(
+      `https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`,
+      {
+        headers: {
+          ...this.HEADERS,
+          "x-signature": signature,
+          "x-signature-version": "web2",
+          "x-time": ts,
+          "Referer": "https://hanime.tv/",
+          "Origin": "https://hanime.tv",
+        },
+      }
+    );
 
-        if (response.ok) {
-            const json = await response.json();
-            const streams = json.videos_manifest.servers
-                .flatMap((s: any) => s.streams)
-                .filter((st: any) => st.kind !== "premium_alert")
-                .map((st: any) => ({
-                    ...st,
-                    // If url is a placeholder but extra2 has a path, construct it
-                    url: (st.url.includes("streamable.cloud") && st.extra2) 
-                        ? `https://weeb.hanime.tv${st.extra2}` 
-                        : st.url
-                }));
-            
-            if (streams.length > 0) return streams;
-        }
-    } catch (e) {
-        console.error("Manifest API Fetch Error:", e);
-    }
-
-    // Fallback to Nuxt state if API fails, but filter out placeholders
-    if (info?.videos_manifest?.servers) {
-        return info.videos_manifest.servers
-            .flatMap((s: any) => s.streams)
-            .filter((st: any) => st.kind !== "premium_alert" && !st.url.includes("streamable.cloud"));
-    }
-
-    return [];
+    if (!response.ok) return [];
+    const json = await response.json();
+    return (json?.videos_manifest?.servers ?? [])
+      .flatMap((s: any) => s.streams)
+      .filter((st: any) => st.kind !== "premium_alert" && st.url);
   }
 
   private mapToVideo(raw: any): any {
