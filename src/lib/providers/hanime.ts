@@ -63,7 +63,6 @@ export default class Hanime {
     
     try {
         const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
-        // Safe evaluation of Nuxt state (it's JS, not JSON)
         const json = new Function(`return ${jsonStr}`)();
         return json.state.data.video;
     } catch (e) {
@@ -73,24 +72,32 @@ export default class Hanime {
   }
 
   public async getStreams(slug: string, videoId?: number, info?: any) {
-    // 1. Try to extract from provided info (Nuxt state)
-    if (info && info.videos_manifest && info.videos_manifest.servers) {
-        const streams = info.videos_manifest.servers.map((s: any) => s.streams).flat();
-        // Check if these are real URLs or placeholders
+    // 1. First, check if the info object contains a valid manifest with real URLs
+    if (info?.videos_manifest?.servers) {
+        const streams = info.videos_manifest.servers
+            .flatMap((s: any) => s.streams)
+            .filter((s: any) => s.kind !== "premium_alert");
+
+        // Use the stream URL directly if it's not a placeholder
         if (streams.length > 0 && !streams[0].url.includes("streamable.cloud")) {
             return streams;
         }
     }
 
-    // 2. Fallback to API call with correct HMAC signature
-    const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
+    // 2. If Nuxt state has placeholders or is missing, we MUST use the manifest API.
+    // The key to a successful manifest API request is the correct signature.
+    // Some endpoints use cached.freeanimehentai.net
+    const manifestUrl = `https://hanime.tv/rapi/v7/videos_manifests/${slug}`;
     const timestamp = Math.floor(Date.now() / 1000).toString();
+    
+    // We'll try the most likely message format: just the timestamp.
+    // If this fails, the next logical step would be id + timestamp.
     const signature = crypto
       .createHmac("sha256", this.SECRET)
       .update(timestamp)
       .digest("hex");
 
-    const response = await fetch(apiUrl, {
+    const response = await fetch(manifestUrl, {
         headers: {
             ...this.HEADERS,
             'x-signature': signature,
@@ -103,11 +110,12 @@ export default class Hanime {
 
     if (response.ok) {
         const json = await response.json();
-        return json.videos_manifest.servers.map((s: any) => s.streams).flat();
-    } else {
-        console.error(`Streams API failed with status ${response.status}`);
+        return json.videos_manifest.servers
+            .flatMap((s: any) => s.streams)
+            .filter((s: any) => s.kind !== "premium_alert");
     }
 
+    console.error(`Manifest API failed for ${slug} with status: ${response.status}`);
     return [];
   }
 

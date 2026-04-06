@@ -14,13 +14,11 @@ export default async function WatchPage({
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet fully implemented</div>;
   }
 
-  // Get info first
   const videoInfo = await hanime.getInfo(slug);
   
   if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
   const videoId = videoInfo.hentai_video.id;
-  // Pass slug, videoId and the whole info object to support both Nuxt extraction and API fallback
   const streams = await hanime.getStreams(slug, videoId, videoInfo);
 
   // Find the best stream URL, ensuring streams is not empty
