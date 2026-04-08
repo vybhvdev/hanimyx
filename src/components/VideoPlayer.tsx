@@ -5,8 +5,14 @@ interface VideoPlayerProps {
   videoId?: number;
 }
 
-export default function VideoPlayer({ slug }: VideoPlayerProps) {
-  if (!slug) return (
+export default function VideoPlayer({ slug, videoId }: VideoPlayerProps) {
+  const embedUrl = videoId
+    ? `https://player.hanime.tv/hentai_video?id=${videoId}`
+    : slug
+    ? `https://player.hanime.tv/hentai_video?slug=${slug}`
+    : null;
+
+  if (!embedUrl) return (
     <div className="aspect-video bg-black/50 rounded-xl flex items-center justify-center text-white/40 text-sm">
       No video source
     </div>
@@ -15,7 +21,7 @@ export default function VideoPlayer({ slug }: VideoPlayerProps) {
   return (
     <div className="aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl">
       <iframe
-        src={`https://hanime.tv/embed?v=${slug}`}
+        src={embedUrl}
         width="100%"
         height="100%"
         frameBorder="0"
