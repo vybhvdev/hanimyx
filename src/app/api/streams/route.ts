@@ -2,22 +2,68 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const hvId = req.nextUrl.searchParams.get("hvId");
-  if (!hvId) return NextResponse.json({ error: "missing hvId" }, { status: 400 });
+  const slug = req.nextUrl.searchParams.get("slug");
+  
+  if (!hvId && !slug) {
+    return NextResponse.json({ error: "missing identifier" }, { status: 400 });
+  }
 
-  const res = await fetch(`https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`, {
+  // Use the slug if provided, otherwise fallback to id (rapi/v7 usually needs slug)
+  const identifier = slug || hvId;
+  const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${identifier}`;
+  
+  const signature = Array.from({ length: 32 }, () => 
+    Math.floor(Math.random() * 16).toString(16)).join('');
+
+  const res = await fetch(apiUrl, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "Accept": "application/json",
+      "X-Signature": signature,
+      "X-Signature-Version": "web2",
+      "X-Time": Math.floor(Date.now() / 1000).toString(),
       "Referer": "https://hanime.tv/",
       "Origin": "https://hanime.tv",
     },
   });
 
-  if (!res.ok) return NextResponse.json({ error: "upstream failed", status: res.status }, { status: 502 });
+  if (!res.ok) {
+    // If rapi/v7 fails, fallback to the old mirror as a last resort
+    const fallbackRes = await fetch(`https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://hanime.tv/",
+      },
+    });
+    
+    if (!fallbackRes.ok) {
+      return NextResponse.json({ error: "upstream failed", status: res.status }, { status: 502 });
+    }
+    
+    const json = await fallbackRes.json();
+    const streams = (json?.videos_manifest?.servers ?? [])
+      .flatMap((s: any) => s.streams)
+      .filter((st: any) => st.kind !== "premium_alert" && st.url);
+    
+    return NextResponse.json({ streams });
+  }
+
   const json = await res.json();
   const streams = (json?.videos_manifest?.servers ?? [])
     .flatMap((s: any) => s.streams)
-    .filter((st: any) => st.kind !== "premium_alert" && st.url);
+    .filter((st: any) => st.kind !== "premium_alert" && st.url)
+    .map((st: any) => {
+      let finalUrl = st.url;
+      // Fix for streamable.cloud placeholders
+      if (finalUrl.includes("streamable.cloud") && st.extra2) {
+        finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+      }
+      return {
+        ...st,
+        url: finalUrl,
+        height: st.height || "720",
+      };
+    });
 
   return NextResponse.json({ streams });
 }

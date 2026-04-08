@@ -1,10 +1,12 @@
 import { load } from "cheerio";
 import crypto from "crypto";
 
+export const HANIME_SECRET = "865473ac43246402343d6433337a4330";
+
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";
   private readonly SEARCH_URL = "https://search.htv-services.com";
-  private readonly SECRET = "865473ac43246402343d6433337a4330";
+  private readonly SECRET = HANIME_SECRET;
   private readonly HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -74,9 +76,6 @@ export default class Hanime {
   public async getStreams(hvId: number) {
     const ts = Math.floor(Date.now() / 1000).toString();
     
-    // Use Web Crypto API or a simple hash if possible for browser compatibility
-    // For now, since we're moving this to a client-side component, we'll keep the logic
-    // but ensure it's called from the browser.
     const signature = crypto
       .createHmac("sha256", this.SECRET)
       .update(ts)
@@ -100,7 +99,17 @@ export default class Hanime {
     const json = await response.json();
     return (json?.videos_manifest?.servers ?? [])
       .flatMap((s: any) => s.streams)
-      .filter((st: any) => st.kind !== "premium_alert" && st.url);
+      .filter((st: any) => st.kind !== "premium_alert" && st.url)
+      .map((st: any) => {
+        let finalUrl = st.url;
+        if (finalUrl.includes("streamable.cloud") && st.extra2) {
+          finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+        }
+        return {
+          ...st,
+          url: finalUrl,
+        };
+      });
   }
 
   // Helper for client-side signature since 'crypto' module isn't in browser
@@ -109,15 +118,16 @@ export default class Hanime {
     const keyData = encoder.encode(secret);
     const msgData = encoder.encode(ts);
     
-    const cryptoKey = await crypto.subtle.importKey(
+    const cryptoKey = await globalThis.crypto.subtle.importKey(
       "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
     );
     
-    const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+    const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, msgData);
     return Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   }
+
 
   private mapToVideo(raw: any): any {
     return {
