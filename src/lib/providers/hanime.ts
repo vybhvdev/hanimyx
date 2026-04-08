@@ -13,7 +13,7 @@ export default class Hanime {
   };
 
   public async getRecent(page = 1) {
-    const response = await fetch(this.SEARCH_URL, {
+    let response = await fetch(this.SEARCH_URL, {
       method: "POST",
       headers: { ...this.HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -27,6 +27,20 @@ export default class Hanime {
       }),
     });
 
+    if (!response.ok) {
+        // Fallback to mirror search
+        response = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
+            method: "POST",
+            headers: { ...this.HEADERS, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                search_text: "",
+                page: page - 1,
+                order_by: "created_at_unix",
+                ordering: "desc"
+            })
+        });
+    }
+
     if (!response.ok) return [];
     const data = await response.json();
     const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
@@ -34,7 +48,7 @@ export default class Hanime {
   }
 
   public async search(query: string, page = 1) {
-    const response = await fetch(this.SEARCH_URL, {
+    let response = await fetch(this.SEARCH_URL, {
       method: "POST",
       headers: { ...this.HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -47,6 +61,19 @@ export default class Hanime {
         tags_mode: "AND",
       }),
     });
+
+    if (!response.ok) {
+        // Fallback to mirror search
+        response = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
+            method: "POST",
+            headers: { ...this.HEADERS, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                search_text: query,
+                page: page - 1,
+            })
+        });
+    }
+
     if (!response.ok) return [];
     const data = await response.json();
     const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;

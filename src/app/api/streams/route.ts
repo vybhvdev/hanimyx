@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { HANIME_SECRET } from "@/lib/providers/hanime";
 
 export async function GET(req: NextRequest) {
   const hvId = req.nextUrl.searchParams.get("hvId");
@@ -12,8 +14,11 @@ export async function GET(req: NextRequest) {
   const identifier = slug || hvId;
   const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${identifier}`;
   
-  const signature = Array.from({ length: 32 }, () => 
-    Math.floor(Math.random() * 16).toString(16)).join('');
+  const ts = Math.floor(Date.now() / 1000).toString();
+  const signature = crypto
+    .createHmac("sha256", HANIME_SECRET)
+    .update(ts)
+    .digest("hex");
 
   const res = await fetch(apiUrl, {
     headers: {
@@ -21,7 +26,7 @@ export async function GET(req: NextRequest) {
       "Accept": "application/json",
       "X-Signature": signature,
       "X-Signature-Version": "web2",
-      "X-Time": Math.floor(Date.now() / 1000).toString(),
+      "X-Time": ts,
       "Referer": "https://hanime.tv/",
       "Origin": "https://hanime.tv",
     },
@@ -31,8 +36,12 @@ export async function GET(req: NextRequest) {
     // If rapi/v7 fails, fallback to the old mirror as a last resort
     const fallbackRes = await fetch(`https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`, {
       headers: {
-        "User-Agent": "Mozilla/5.0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Signature": signature,
+        "X-Signature-Version": "web2",
+        "X-Time": ts,
         "Referer": "https://hanime.tv/",
+        "Origin": "https://hanime.tv",
       },
     });
     
