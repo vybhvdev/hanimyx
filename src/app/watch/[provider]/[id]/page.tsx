@@ -13,31 +13,20 @@ export default async function WatchPage({
   const hanime = new Hanime();
 
   if (provider !== 'hanime') {
-    return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet fully implemented</div>;
+    return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet implemented</div>;
   }
 
-  const hvIdFromQuery = searchParams.id ? parseInt(searchParams.id) : null;
-  
-  // If we don't have metadata (info), we fetch it server-side.
-  // Note: Metadata API might still work on Vercel even if manifest is blocked.
   const videoInfo = await hanime.getInfo(slug);
+  if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
-  if (!videoInfo && !hvIdFromQuery) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
-
-  const videoId = hvIdFromQuery ?? videoInfo?.hentai_video?.id;
   const videoData = videoInfo?.hentai_video;
-  const unifiedTags = videoInfo ? getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text)) : [];
+  const unifiedTags = getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text));
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* 
-            VideoPlayer now handles manifest fetching client-side 
-            using the videoId to bypass Vercel IP blocking.
-          */}
-          <VideoPlayer videoId={videoId} />
-          
+          <VideoPlayer slug={slug} />
           {videoData && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">
@@ -73,7 +62,7 @@ export default async function WatchPage({
               <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">EPISODES</h2>
               <div className="space-y-3">
                 {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
-                  <a key={ep.id} href={`/watch/hanime/${ep.slug}?id=${ep.id}`}
+                  <a key={ep.id} href={`/watch/hanime/${ep.slug}`}
                     className={`block p-2 rounded-lg text-xs transition-colors ${ep.slug === slug ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-white/60'}`}>
                     {ep.name}
                   </a>
