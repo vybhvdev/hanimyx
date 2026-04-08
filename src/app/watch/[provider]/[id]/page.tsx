@@ -19,6 +19,7 @@ export default async function WatchPage({
   const videoInfo = await hanime.getInfo(slug);
   if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
+  const hvIdFromQuery = searchParams.id ? parseInt(searchParams.id) : undefined;
   const videoId = hvIdFromQuery ?? videoInfo?.hentai_video?.id;
   const videoData = videoInfo?.hentai_video;
   const unifiedTags = videoInfo ? getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text)) : [];
