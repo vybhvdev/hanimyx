@@ -186,11 +186,17 @@ export default class Hanime {
       if (haniRes.ok) {
         const haniJson = await haniRes.json();
         if (haniJson && haniJson.streams && haniJson.streams.length > 0) {
-          return haniJson.streams.map((st: any) => ({
-            ...st,
-            url: st.url,
-            height: st.height || "720",
-          }));
+          return haniJson.streams.map((st: any) => {
+            let finalUrl = st.url;
+            if (finalUrl.includes("streamable.cloud") && st.extra2) {
+              finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+            }
+            return {
+              ...st,
+              url: finalUrl,
+              height: st.height || "720",
+            };
+          });
         }
       }
     } catch (e) {
