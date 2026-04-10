@@ -13,6 +13,30 @@ export default class Hanime {
   };
 
   public async getRecent(page = 1) {
+    try {
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=`;
+      const response = await fetch(haniApiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        const results = data.results || [];
+        return results.map((raw: any) => ({
+          id: raw.id,
+          name: raw.name || raw.title,
+          slug: raw.slug,
+          description: raw.description,
+          views: raw.views,
+          posterUrl: raw.cover_url || raw.poster_url,
+          coverUrl: raw.cover_url,
+          brand: raw.brand,
+          durationMs: raw.duration_in_ms,
+          tags: raw.tags || [],
+          releasedAt: raw.released_at || raw.created_at,
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI Recent error:", e);
+    }
+
     let response = await fetch(this.SEARCH_URL, {
       method: "POST",
       headers: { ...this.HEADERS, "Content-Type": "application/json" },
@@ -48,6 +72,30 @@ export default class Hanime {
   }
 
   public async search(query: string, page = 1) {
+    try {
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=${encodeURIComponent(query)}`;
+      const response = await fetch(haniApiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        const results = data.results || [];
+        return results.map((raw: any) => ({
+          id: raw.id,
+          name: raw.name || raw.title,
+          slug: raw.slug,
+          description: raw.description,
+          views: raw.views,
+          posterUrl: raw.cover_url || raw.poster_url,
+          coverUrl: raw.cover_url,
+          brand: raw.brand,
+          durationMs: raw.duration_in_ms,
+          tags: raw.tags || [],
+          releasedAt: raw.released_at || raw.created_at,
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI Search error:", e);
+    }
+
     let response = await fetch(this.SEARCH_URL, {
       method: "POST",
       headers: { ...this.HEADERS, "Content-Type": "application/json" },
@@ -81,6 +129,32 @@ export default class Hanime {
   }
 
   public async getInfo(slug: string) {
+    try {
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/getInfo/${slug}`;
+      const haniRes = await fetch(haniApiUrl);
+      if (haniRes.ok) {
+        const haniJson = await haniRes.json();
+        if (haniJson && haniJson.id) {
+          // Map to the structure expected by the WatchPage
+          return {
+            hentai_video: {
+              id: haniJson.id,
+              description: haniJson.description,
+              slug: haniJson.slug,
+              poster_url: haniJson.poster,
+              views: parseInt(haniJson.views?.replace(/,/g, '') || "0"),
+            },
+            hentai_tags: (haniJson.tags || []).map((t: string) => ({ text: t })),
+            hentai_franchise: {
+              name: haniJson.title
+            }
+          };
+        }
+      }
+    } catch (e) {
+      console.error("HaniAPI getInfo error:", e);
+    }
+
     const url = `${this.BASE_URL}/videos/hentai/${slug}`;
     const response = await fetch(url, { headers: this.HEADERS });
     if (!response.ok) return null;

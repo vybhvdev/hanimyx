@@ -10,8 +10,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "missing identifier" }, { status: 400 });
   }
 
-  // Use the slug if provided, otherwise fallback to id (rapi/v7 usually needs slug)
   const identifier = slug || hvId;
+
+  // Primary source: HaniAPI
+  try {
+    const haniApiUrl = `https://haniapi-nyt92.vercel.app/getVideo/${slug || hvId}`;
+    const haniRes = await fetch(haniApiUrl);
+    
+    if (haniRes.ok) {
+      const haniJson = await haniRes.json();
+      if (haniJson && haniJson.streams && haniJson.streams.length > 0) {
+        const streams = haniJson.streams.map((st: any) => ({
+          ...st,
+          url: st.url,
+          height: st.height || "720",
+        }));
+        return NextResponse.json({ streams });
+      }
+    }
+  } catch (error) {
+    console.error("HaniAPI error:", error);
+  }
+
+  // Fallback to rapi/v7 (original logic)
   const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${identifier}`;
   
   const ts = Math.floor(Date.now() / 1000).toString();
