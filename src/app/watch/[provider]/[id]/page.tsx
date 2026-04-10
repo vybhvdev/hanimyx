@@ -16,7 +16,11 @@ export default async function WatchPage({
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Provider {provider} not yet implemented</div>;
   }
 
-  const videoInfo = await hanime.getInfo(slug);
+  const [videoInfo, streams] = await Promise.all([
+    hanime.getInfo(slug),
+    hanime.getStreams(slug)
+  ]);
+
   if (!videoInfo) return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">Video not found</div>;
 
   const hvIdFromQuery = searchParams.id ? parseInt(searchParams.id) : undefined;
@@ -24,15 +28,15 @@ export default async function WatchPage({
   const videoData = videoInfo?.hentai_video;
   const unifiedTags = videoInfo ? getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text)) : [];
 
+  // Sort streams by quality descending
+  const sortedStreams = (streams || []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
+  const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* 
-            VideoPlayer now handles manifest fetching client-side 
-            using the slug/videoId to bypass Vercel IP blocking.
-          */}
-          <VideoPlayer slug={slug} videoId={videoId} />
+          <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} />
           {videoData && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">

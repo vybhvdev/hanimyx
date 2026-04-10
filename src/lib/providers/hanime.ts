@@ -178,43 +178,66 @@ export default class Hanime {
     }
   }
 
-  public async getStreams(hvId: number) {
+  public async getStreams(identifier: string | number) {
+    try {
+      // Try HaniAPI first
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/getVideo/${identifier}`;
+      const haniRes = await fetch(haniApiUrl);
+      if (haniRes.ok) {
+        const haniJson = await haniRes.json();
+        if (haniJson && haniJson.streams && haniJson.streams.length > 0) {
+          return haniJson.streams.map((st: any) => ({
+            ...st,
+            url: st.url,
+            height: st.height || "720",
+          }));
+        }
+      }
+    } catch (e) {
+      console.error("HaniAPI Streams error:", e);
+    }
+
     const ts = Math.floor(Date.now() / 1000).toString();
-    
     const signature = crypto
       .createHmac("sha256", this.SECRET)
       .update(ts)
       .digest("hex");
 
-    const response = await fetch(
-      `https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`,
-      {
-        headers: {
-          ...this.HEADERS,
-          "x-signature": signature,
-          "x-signature-version": "web2",
-          "x-time": ts,
-          "Referer": "https://hanime.tv/",
-          "Origin": "https://hanime.tv",
-        },
-      }
-    );
-
-    if (!response.ok) return [];
-    const json = await response.json();
-    return (json?.videos_manifest?.servers ?? [])
-      .flatMap((s: any) => s.streams)
-      .filter((st: any) => st.kind !== "premium_alert" && st.url)
-      .map((st: any) => {
-        let finalUrl = st.url;
-        if (finalUrl.includes("streamable.cloud") && st.extra2) {
-          finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+    try {
+      const response = await fetch(
+        `https://cached.freeanimehentai.net/api/v8/guest/videos/${identifier}/manifest`,
+        {
+          headers: {
+            ...this.HEADERS,
+            "x-signature": signature,
+            "x-signature-version": "web2",
+            "x-time": ts,
+            "Referer": "https://hanime.tv/",
+            "Origin": "https://hanime.tv",
+          },
         }
-        return {
-          ...st,
-          url: finalUrl,
-        };
-      });
+      );
+
+      if (!response.ok) return [];
+      const json = await response.json();
+      return (json?.videos_manifest?.servers ?? [])
+        .flatMap((s: any) => s.streams)
+        .filter((st: any) => st.kind !== "premium_alert" && st.url)
+        .map((st: any) => {
+          let finalUrl = st.url;
+          if (finalUrl.includes("streamable.cloud") && st.extra2) {
+            finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+          }
+          return {
+            ...st,
+            url: finalUrl,
+            height: st.height || "720",
+          };
+        });
+    } catch (e) {
+      console.error("Fallback Streams error:", e);
+      return [];
+    }
   }
 
   // Helper for client-side signature since 'crypto' module isn't in browser
