@@ -143,11 +143,15 @@ export default class Hanime {
               slug: haniJson.slug,
               poster_url: haniJson.poster,
               views: parseInt(haniJson.views?.replace(/,/g, '') || "0"),
+              rating: 0,
+              likes: 0,
+              downloads: 0,
             },
             hentai_tags: (haniJson.tags || []).map((t: string) => ({ text: t })),
             hentai_franchise: {
               name: haniJson.title
-            }
+            },
+            hentai_franchise_hentai_videos: []
           };
         }
       }

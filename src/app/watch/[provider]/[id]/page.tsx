@@ -36,7 +36,7 @@ export default async function WatchPage({
           {videoData && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">
-                {videoInfo.hentai_franchise.name}
+                {videoInfo.hentai_franchise?.name || 'Unknown Video'}
               </h1>
               <div className="flex flex-wrap gap-2 mb-6">
                 {unifiedTags.map((tag: string) => (
@@ -46,7 +46,7 @@ export default async function WatchPage({
                 ))}
               </div>
               <p className="text-white/60 text-sm leading-relaxed border-t border-white/5 pt-6">
-                {videoData.description.replace(/<[^>]*>?/gm, '')}
+                {videoData.description?.replace(/<[^>]*>?/gm, '') || 'No description available.'}
               </p>
             </div>
           )}
@@ -56,10 +56,10 @@ export default async function WatchPage({
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">STATS</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-[10px] text-white/30 uppercase">Views</p><p className="text-sm font-bold">{videoData.views.toLocaleString()}</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Rating</p><p className="text-sm font-bold">{videoData.rating}/10</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Likes</p><p className="text-sm font-bold">{videoData.likes.toLocaleString()}</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Downloads</p><p className="text-sm font-bold">{videoData.downloads.toLocaleString()}</p></div>
+                <div><p className="text-[10px] text-white/30 uppercase">Views</p><p className="text-sm font-bold">{(videoData.views || 0).toLocaleString()}</p></div>
+                <div><p className="text-[10px] text-white/30 uppercase">Rating</p><p className="text-sm font-bold">{videoData.rating || 0}/10</p></div>
+                <div><p className="text-[10px] text-white/30 uppercase">Likes</p><p className="text-sm font-bold">{(videoData.likes || 0).toLocaleString()}</p></div>
+                <div><p className="text-[10px] text-white/30 uppercase">Downloads</p><p className="text-sm font-bold">{(videoData.downloads || 0).toLocaleString()}</p></div>
               </div>
             </div>
           )}
