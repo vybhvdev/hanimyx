@@ -74,7 +74,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl }: VideoPlayerPr
 
       // Custom theme overrides
       player.on('ready', () => {
-        const el = player.el();
+        const el = player.el() as HTMLElement;
         if (el) {
           el.style.backgroundColor = '#000';
         }
