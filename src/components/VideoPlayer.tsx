@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import videojs from 'video.js';
-import Player from 'video.js/dist/video.js';
 import 'video.js/dist/video-js.css';
 
 interface VideoPlayerProps {
@@ -13,7 +12,7 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ slug, videoId, initialUrl }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<typeof Player | null>(null);
+  const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
   const [url, setUrl] = useState(initialUrl || "");
   const [loading, setLoading] = useState(!initialUrl);
   const [error, setError] = useState<string | null>(null);
