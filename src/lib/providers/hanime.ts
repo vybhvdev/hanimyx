@@ -14,7 +14,7 @@ export default class Hanime {
 
   public async getRecent(page = 1) {
     try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=`;
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=created_at_unix&ordering=desc`;
       const response = await fetch(haniApiUrl);
       if (response.ok) {
         const data = await response.json();
