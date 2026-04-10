@@ -59,6 +59,12 @@ export default function VideoPlayer({ slug, videoId, initialUrl }: VideoPlayerPr
   }, []);
 
   useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
       
@@ -193,7 +199,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl }: VideoPlayerPr
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         muted={isMuted}
-        volume={volume}
         playsInline
       />
 
