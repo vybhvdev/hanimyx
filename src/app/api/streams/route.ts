@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ streams }, {
     headers: {
-      'Cache-Control': 'public, s-maxage=3600',
+      'Cache-Control': 'no-store',
     }
   });
 }
