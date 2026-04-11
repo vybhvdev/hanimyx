@@ -180,27 +180,23 @@ export default class Hanime {
 
   public async getStreams(identifier: string | number) {
     try {
-      // Try HaniAPI first
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/getVideo/${identifier}`;
+      // Try Cloudflare Worker first
+      const haniApiUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/streams/${identifier}`;
       const haniRes = await fetch(haniApiUrl);
       if (haniRes.ok) {
         const haniJson = await haniRes.json();
-        if (haniJson && haniJson.streams && haniJson.streams.length > 0) {
-          return haniJson.streams.map((st: any) => {
-            let finalUrl = st.url;
-            if (finalUrl.includes("streamable.cloud") && st.extra2) {
-              finalUrl = `https://weeb.hanime.tv${st.extra2}`;
-            }
-            return {
-              ...st,
-              url: finalUrl,
-              height: st.height || "720",
-            };
-          });
+        const streams = Array.isArray(haniJson) ? haniJson : (haniJson.streams || []);
+        
+        if (streams.length > 0) {
+          return streams.map((st: any) => ({
+            ...st,
+            url: st.url,
+            height: st.height || "720",
+          }));
         }
       }
     } catch (e) {
-      console.error("HaniAPI Streams error:", e);
+      console.error("Worker Streams error:", e);
     }
 
     const ts = Math.floor(Date.now() / 1000).toString();
