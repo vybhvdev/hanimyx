@@ -1,103 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-import { HANIME_SECRET } from "@/lib/providers/hanime";
 
 export async function GET(req: NextRequest) {
-  const hvId = req.nextUrl.searchParams.get("hvId");
   const slug = req.nextUrl.searchParams.get("slug");
-  
-  if (!hvId && !slug) {
+  const hvId = req.nextUrl.searchParams.get("hvId");
+
+  if (!slug && !hvId) {
     return NextResponse.json({ error: "missing identifier" }, { status: 400 });
   }
 
-  const identifier = slug || hvId;
-
-  // Primary source: HaniAPI
   try {
-    const haniApiUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/streams/${slug || hvId}`;
-    const haniRes = await fetch(haniApiUrl);
-    
-    if (haniRes.ok) {
-      const haniJson = await haniRes.json();
-      if (haniJson && haniJson.streams && haniJson.streams.length > 0) {
-        const streams = haniJson.streams.map((st: any) => ({
-          ...st,
-          url: st.url,
-          height: st.height || "720",
-        }));
-        return NextResponse.json({ streams });
-      }
-    }
-  } catch (error) {
-    console.error("HaniAPI error:", error);
-  }
+    const workerUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/streams/${slug || hvId}`;
+    const res = await fetch(workerUrl);
 
-  // Fallback to rapi/v7 (original logic)
-  const apiUrl = `https://hanime.tv/rapi/v7/videos_manifests/${identifier}`;
-  
-  const ts = Math.floor(Date.now() / 1000).toString();
-  const signature = crypto
-    .createHmac("sha256", HANIME_SECRET)
-    .update(ts)
-    .digest("hex");
-
-  const res = await fetch(apiUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "application/json",
-      "X-Signature": signature,
-      "X-Signature-Version": "web2",
-      "X-Time": ts,
-      "Referer": "https://hanime.tv/",
-      "Origin": "https://hanime.tv",
-    },
-  });
-
-  if (!res.ok) {
-    // If rapi/v7 fails, fallback to the old mirror as a last resort
-    const fallbackRes = await fetch(`https://cached.freeanimehentai.net/api/v8/guest/videos/${hvId}/manifest`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "X-Signature": signature,
-        "X-Signature-Version": "web2",
-        "X-Time": ts,
-        "Referer": "https://hanime.tv/",
-        "Origin": "https://hanime.tv",
-      },
-    });
-    
-    if (!fallbackRes.ok) {
+    if (!res.ok) {
       return NextResponse.json({ error: "upstream failed", status: res.status }, { status: 502 });
     }
-    
-    const json = await fallbackRes.json();
-    const streams = (json?.videos_manifest?.servers ?? [])
-      .flatMap((s: any) => s.streams)
-      .filter((st: any) => st.kind !== "premium_alert" && st.url);
-    
-    return NextResponse.json({ streams });
-  }
 
-  const json = await res.json();
-  const streams = (json?.videos_manifest?.servers ?? [])
-    .flatMap((s: any) => s.streams)
-    .filter((st: any) => st.kind !== "premium_alert" && st.url)
-    .map((st: any) => {
-      let finalUrl = st.url;
-      // Fix for streamable.cloud placeholders
-      if (finalUrl.includes("streamable.cloud") && st.extra2) {
-        finalUrl = `https://weeb.hanime.tv${st.extra2}`;
-      }
-      return {
-        ...st,
-        url: finalUrl,
-        height: st.height || "720",
-      };
-    });
+    const streams = await res.json();
 
-  return NextResponse.json({ streams }, {
-    headers: {
-      'Cache-Control': 'no-store',
+    if (!Array.isArray(streams) || streams.length === 0) {
+      return NextResponse.json({ error: "no streams found" }, { status: 404 });
     }
-  });
+
+    return NextResponse.json({ streams }, {
+      headers: { 'Cache-Control': 'no-store' }
+    });
+  } catch (error) {
+    console.error("Stream fetch error:", error);
+    return NextResponse.json({ error: "internal error" }, { status: 500 });
+  }
 }
