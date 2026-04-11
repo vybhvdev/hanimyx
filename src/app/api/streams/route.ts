@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   // Primary source: HaniAPI
   try {
-    const haniApiUrl = `https://haniapi-nyt92.vercel.app/api/hanime/streams/${slug || hvId}`;
+    const haniApiUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/streams/${slug || hvId}`;
     const haniRes = await fetch(haniApiUrl);
     
     if (haniRes.ok) {
