@@ -33,53 +33,85 @@ export default async function WatchPage({
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} />
-          {videoData && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h1 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">
-                {videoInfo.hentai_franchise?.name || 'Unknown Video'}
-              </h1>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {unifiedTags.map((tag: string) => (
-                  <span key={tag} className="text-[10px] font-bold bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest text-white/80">
-                    {tag}
-                  </span>
-                ))}
+    <div className="bg-[#0d0d0d] min-h-screen pb-20">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} streams={streams} />
+            
+            {videoData && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase italic tracking-tighter leading-tight border-l-4 border-[#e53333] pl-4">
+                    {videoInfo.hentai_franchise?.name || 'Unknown Video'}
+                  </h1>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {unifiedTags.map((tag: string) => (
+                      <span key={tag} className="text-[9px] font-black bg-white/5 border border-white/5 hover:border-[#e53333]/30 px-3 py-1 rounded-full uppercase tracking-[0.1em] text-white/40 hover:text-white transition-all cursor-default">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#e53333] mb-4">Description</h3>
+                  <p className="text-white/40 text-sm leading-relaxed uppercase tracking-wide font-medium">
+                    {videoData.description?.replace(/<[^>]*>?/gm, '') || 'No classified data available for this transmission.'}
+                  </p>
+                </div>
               </div>
-              <p className="text-white/60 text-sm leading-relaxed border-t border-white/5 pt-6">
-                {videoData.description?.replace(/<[^>]*>?/gm, '') || 'No description available.'}
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="space-y-6">
-          {videoData && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">STATS</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-[10px] text-white/30 uppercase">Views</p><p className="text-sm font-bold">{(videoData.views || 0).toLocaleString()}</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Rating</p><p className="text-sm font-bold">{videoData.rating || 0}/10</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Likes</p><p className="text-sm font-bold">{(videoData.likes || 0).toLocaleString()}</p></div>
-                <div><p className="text-[10px] text-white/30 uppercase">Downloads</p><p className="text-sm font-bold">{(videoData.downloads || 0).toLocaleString()}</p></div>
+            )}
+          </div>
+
+          <div className="space-y-8">
+            {videoData && (
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6">
+                <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                  <div className="w-1 h-3 bg-[#e53333] rounded-full" />
+                  Analytics
+                </h2>
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                  <div>
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Views</p>
+                    <p className="text-lg font-black text-white tracking-tighter">{(videoData.views || 0).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Rating</p>
+                    <p className="text-lg font-black text-white tracking-tighter">{videoData.rating || 0}/10</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Likes</p>
+                    <p className="text-lg font-black text-white tracking-tighter">{(videoData.likes || 0).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Status</p>
+                    <p className="text-lg font-black text-[#e53333] tracking-tighter uppercase italic">Secure</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-          {videoInfo?.hentai_franchise_hentai_videos && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">EPISODES</h2>
-              <div className="space-y-3">
-                {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
-                  <a key={ep.id} href={`/watch/hanime/${ep.slug}`}
-                    className={`block p-2 rounded-lg text-xs transition-colors ${ep.slug === slug ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-white/60'}`}>
-                    {ep.name}
-                  </a>
-                ))}
+            )}
+
+            {videoInfo?.hentai_franchise_hentai_videos && videoInfo.hentai_franchise_hentai_videos.length > 0 && (
+              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6">
+                <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                  <div className="w-1 h-3 bg-[#e53333] rounded-full" />
+                  Episodes
+                </h2>
+                <div className="space-y-2">
+                  {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
+                    <a key={ep.id} href={`/watch/hanime/${ep.slug}`}
+                      className={`group block p-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${ep.slug === slug ? 'bg-[#e53333] text-white shadow-lg shadow-red-900/20' : 'bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-transparent hover:border-white/10'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="line-clamp-1">{ep.name}</span>
+                        {ep.slug === slug && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

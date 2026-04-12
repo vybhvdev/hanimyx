@@ -3,11 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0a;
+  --background: #0d0d0d;
   --foreground: #ededed;
+  --accent: #e53333;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff4444;
+}
+
+/* Hide scrollbar for horizontal scroll sections but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -20,32 +20,39 @@ export default function VideoCard({ video }: VideoCardProps) {
   return (
     <a
       href={`/watch/hanime/${video.slug}?id=${video.id}`}
-      className="group block bg-white/5 border border-white/10 rounded-lg overflow-hidden hover:border-white/20 transition-all hover:-translate-y-1 shadow-lg"
+      className="group relative block aspect-video bg-black rounded-xl overflow-hidden border border-white/5 hover:border-[#e53333]/50 transition-all duration-300"
     >
-      <div className="relative aspect-video overflow-hidden bg-white/5">
-        <img
-          src={proxiedUrl}
-          alt={video.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {durationMin > 0 && (
-          <div className="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] font-black text-white/90">
-            {durationMin}m
+      <img
+        src={proxiedUrl}
+        alt={video.name}
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80"
+      />
+      
+      {/* Duration Badge */}
+      {durationMin > 0 && (
+        <div className="absolute top-2 right-2 bg-[#e53333] px-1.5 py-0.5 rounded text-[9px] font-black text-white uppercase tracking-tighter z-10">
+          {durationMin}m
+        </div>
+      )}
+
+      {/* Content Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent flex flex-col justify-end p-4">
+        <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+          <h3 className="font-black text-[12px] md:text-[13px] leading-tight text-white uppercase italic tracking-tighter mb-2 line-clamp-2">
+            {video.name}
+          </h3>
+          <div className="flex flex-wrap gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+            {unifiedTags.map(tag => (
+              <span key={tag} className="text-[8px] font-black bg-white/10 px-1.5 py-0.5 rounded text-white/60 uppercase tracking-tighter">
+                {tag}
+              </span>
+            ))}
           </div>
-        )}
-      </div>
-      <div className="p-2.5">
-        <h3 className="font-bold text-[11px] leading-tight line-clamp-2 mb-2 text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">
-          {video.name}
-        </h3>
-        <div className="flex flex-wrap gap-1">
-          {unifiedTags.map(tag => (
-            <span key={tag} className="text-[8px] font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/40 uppercase tracking-tighter">
-              {tag}
-            </span>
-          ))}
         </div>
       </div>
+
+      {/* Red accent bar on hover */}
+      <div className="absolute bottom-0 left-0 w-0 h-1 bg-[#e53333] group-hover:w-full transition-all duration-500" />
     </a>
   );
 }
