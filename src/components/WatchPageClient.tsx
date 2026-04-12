@@ -33,8 +33,8 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         setLoadingInfo(false);
 
         // Fetch streams using hvId if available, else slug
-        const hvId = infoData?.hentai_video?.id;
-        const streamParam = hvId ? `hvId=${hvId}` : `slug=${slug}`;
+        
+        const streamParam = `slug=${slug}`;
         
         fetch(`/api/streams?${streamParam}`)
           .then((res) => res.json())
