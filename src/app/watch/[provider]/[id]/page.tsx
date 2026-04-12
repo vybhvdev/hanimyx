@@ -77,6 +77,37 @@ export default async function WatchPage({
                     {videoData.description?.replace(/<[^>]*>?/gm, '') || 'No classified data available for this transmission.'}
                   </p>
                 </div>
+
+                {/* Episodes Section */}
+                {videoInfo?.hentai_franchise_hentai_videos && videoInfo.hentai_franchise_hentai_videos.length > 1 && (
+                  <div className="pt-8">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-6 flex items-center gap-2">
+                      <div className="w-1 h-3 bg-[#e53333] rounded-full" />
+                      Franchise Episodes
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
+                        <a 
+                          key={ep.id} 
+                          href={`/watch/hanime/${ep.slug}`}
+                          className={`group flex items-center gap-4 p-3 bg-[#0a0a0a] border rounded-2xl transition-all ${ep.slug === slug ? 'border-[#e53333]/50 bg-[#e53333]/5' : 'border-white/5 hover:border-white/10 hover:bg-white/5'}`}
+                        >
+                          <div className="relative w-24 aspect-video rounded-lg overflow-hidden flex-none">
+                            <img 
+                              src={`/api/image?url=${encodeURIComponent(ep.poster_url)}`} 
+                              alt={ep.name}
+                              className="w-full h-full object-cover"
+                            />
+                            {ep.slug === slug && <div className="absolute inset-0 bg-[#e53333]/20 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full animate-ping" /></div>}
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest leading-tight line-clamp-2 ${ep.slug === slug ? 'text-[#e53333]' : 'text-white/40 group-hover:text-white'}`}>
+                            {ep.name}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -108,39 +139,12 @@ export default async function WatchPage({
                 </div>
               </div>
             )}
-
-            {videoInfo?.hentai_franchise_hentai_videos && videoInfo.hentai_franchise_hentai_videos.length > 0 && (
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6">
-                <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-[#e53333] rounded-full" />
-                  Episodes
-                </h2>
-                <div className="space-y-3">
-                  {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
-                    <a key={ep.id} href={`/watch/hanime/${ep.slug}`}
-                      className={`group flex items-center gap-3 p-2 rounded-xl transition-all border ${ep.slug === slug ? 'bg-[#e53333]/10 border-[#e53333]/30' : 'bg-white/5 hover:bg-white/10 border-transparent hover:border-white/10'}`}>
-                      <div className="relative w-20 aspect-video rounded-lg overflow-hidden flex-none">
-                        <img 
-                          src={`/api/image?url=${encodeURIComponent(ep.poster_url)}`} 
-                          alt={ep.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {ep.slug === slug && <div className="absolute inset-0 bg-[#e53333]/20 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full animate-ping" /></div>}
-                      </div>
-                      <span className={`text-[10px] font-black uppercase tracking-tighter line-clamp-2 ${ep.slug === slug ? 'text-[#e53333]' : 'text-white/40 group-hover:text-white'}`}>
-                        {ep.name}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Related Videos Section */}
         {relatedVideos.length > 0 && (
-          <section className="pt-12 border-t border-white/5">
+          <section className="pt-16 border-t border-white/5">
             <div className="flex items-center gap-3 mb-10">
               <div className="w-1.5 h-8 bg-[#e53333] rounded-full" />
               <div>
@@ -148,8 +152,8 @@ export default async function WatchPage({
                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Based on frequency: {firstTag}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-6">
-              {relatedVideos.map((video: any) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
+              {relatedVideos.slice(0, 6).map((video: any) => (
                 <VideoCard key={video.id} video={video} />
               ))}
             </div>
