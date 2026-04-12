@@ -5,6 +5,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoActions from "@/components/VideoActions";
 import VideoCard from "@/components/VideoCard";
 import { getUnifiedTags } from "@/lib/tags";
+import { Download } from "lucide-react";
 
 export default function WatchPageClient({ slug }: { slug: string }) {
   const [videoInfo, setVideoInfo] = useState<any>(null);
@@ -44,46 +45,49 @@ export default function WatchPageClient({ slug }: { slug: string }) {
           });
 
         // Fetch related videos based on tags
-        const videoData = infoData?.hentai_video;
-        const videoTags = Array.isArray(videoData?.tags) ? videoData.tags : (Array.isArray(infoData?.hentai_tags) ? infoData.hentai_tags.map((t: any) => t.text) : []);
+        const videoTags = infoData?.tags || [];
         const relatedSearchTags = videoTags.slice(0, 3);
         
-        fetch("https://search.htv-services.com", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            blacklist: [],
-            brands: [],
-            order_by: "created_at_unix",
-            page: 0,
-            tags: relatedSearchTags,
-            search_text: "",
-            tags_mode: "OR",
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-            const related = (hits || [])
-              .filter((v: any) => v.slug !== slug)
-              .slice(0, 10)
-              .map((raw: any) => ({
-                id: raw.id,
-                name: raw.name,
-                slug: raw.slug,
-                posterUrl: raw.poster_url,
-                durationMs: raw.duration_in_ms,
-                tags: raw.tags,
-              }));
-            setRelatedVideos(related);
-            setLoadingRelated(false);
+        if (relatedSearchTags.length > 0) {
+          fetch("https://search.htv-services.com", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              blacklist: [],
+              brands: [],
+              order_by: "created_at_unix",
+              page: 0,
+              tags: relatedSearchTags,
+              search_text: "",
+              tags_mode: "OR",
+            }),
           })
-          .catch((err) => {
-            console.error(err);
-            setLoadingRelated(false);
-          });
+            .then((res) => res.json())
+            .then((data) => {
+              const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+              const related = (hits || [])
+                .filter((v: any) => v.slug !== slug)
+                .slice(0, 10)
+                .map((raw: any) => ({
+                  id: raw.id,
+                  name: raw.name,
+                  slug: raw.slug,
+                  posterUrl: raw.poster_url,
+                  durationMs: raw.duration_in_ms,
+                  tags: raw.tags,
+                }));
+              setRelatedVideos(related);
+              setLoadingRelated(false);
+            })
+            .catch((err) => {
+              console.error(err);
+              setLoadingRelated(false);
+            });
+        } else {
+          setLoadingRelated(false);
+        }
 
       } catch (err) {
         console.error(err);
@@ -101,25 +105,24 @@ export default function WatchPageClient({ slug }: { slug: string }) {
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">{error}</div>;
   }
 
-  const videoData = videoInfo?.hentai_video;
-  const videoId = videoData?.id;
-  const videoTags = Array.isArray(videoData?.tags) ? videoData.tags : (Array.isArray(videoInfo?.hentai_tags) ? videoInfo.hentai_tags.map((t: any) => t.text) : []);
+  const videoId = videoInfo?.id;
+  const videoTags = videoInfo?.tags || [];
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
-  const displayTitle = videoInfo?.title || (videoData?.name && videoData.name !== slug ? videoData.name : null) || videoInfo?.name || videoInfo?.hentai_franchise?.name || slug;
-  const cleanDescription = (videoData?.description || '').replace(/\\n/g, " ").replace(/\\r/g, "").replace(/\\/g, "").trim() || 'No classified data available for this transmission.';
+  const displayTitle = videoInfo?.name || slug;
+  const cleanDescription = videoInfo?.description || 'No classified data available for this transmission.';
 
   const sortedStreams = (Array.isArray(streams) ? streams : []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
 
-  const rawEpisodes = videoInfo?.hentai_franchise_hentai_videos || videoInfo?.hentai_franchise?.hentai_videos || [];
+  const rawEpisodes = videoInfo?.episodes || [];
   let episodes = Array.isArray(rawEpisodes) ? [...rawEpisodes] : [];
   if (videoInfo && !episodes.find(ep => ep.slug === slug)) {
     episodes.push({
       id: videoId || 0,
       name: displayTitle,
       slug: slug,
-      poster_url: videoData?.poster_url || "",
+      posterUrl: videoInfo?.poster_url || "",
     });
     episodes.sort((a, b) => a.id - b.id);
   }
@@ -137,13 +140,27 @@ export default function WatchPageClient({ slug }: { slug: string }) {
               <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} streams={streams} />
             )}
             
-            {!loadingInfo && (
-              <VideoActions 
-                slug={slug} 
-                title={videoInfo?.hentai_franchise?.name || videoData?.name || 'Unknown Video'} 
-                streamUrl={initialStreamUrl} 
-              />
-            )}
+            <div className="flex flex-wrap items-center gap-3 py-4 border-b border-white/5 mb-6">
+              {!loadingInfo && (
+                <>
+                  <VideoActions 
+                    slug={slug} 
+                    title={displayTitle} 
+                    streamUrl={initialStreamUrl} 
+                  />
+                  {initialStreamUrl && (
+                    <a 
+                      href={initialStreamUrl}
+                      download={`${slug}.m3u8`}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                    >
+                      <Download size={14} strokeWidth={3} />
+                      Download
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
 
             {loadingInfo ? (
               <div className="space-y-6 animate-pulse mt-8">
@@ -151,11 +168,11 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 <div className="flex gap-2"><div className="h-4 bg-white/5 w-16 rounded-full"></div><div className="h-4 bg-white/5 w-20 rounded-full"></div></div>
                 <div className="h-32 bg-[#0a0a0a] border border-white/5 rounded-2xl"></div>
               </div>
-            ) : videoData && (
+            ) : (
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase italic tracking-tighter leading-tight border-l-4 border-[#e53333] pl-4">
-                    {videoData.name || videoInfo.hentai_franchise?.name || 'Unknown Video'}
+                    {displayTitle}
                   </h1>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {unifiedTags.map((tag: string) => (
@@ -173,7 +190,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#e53333] mb-4">Description</h3>
                   <p className="text-white/40 text-sm leading-relaxed uppercase tracking-wide font-medium">
-                    {videoData.description?.replace(/<[^>]*>?/gm, '') || 'No classified data available for this transmission.'}
+                    {cleanDescription}
                   </p>
                 </div>
 
@@ -188,15 +205,14 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                         <a 
                           key={ep.id} 
                           href={`/watch/hanime/${ep.slug}`}
-                          className={`flex-none w-48 group bg-[#0a0a0a] border rounded-2xl transition-all overflow-hidden ${ep.slug === slug ? 'border-[#e53333]/50' : 'border-white/5 hover:border-white/10'}`}
+                          className={`flex-none w-48 group bg-[#0a0a0a] border border-white/5 hover:border-white/10 rounded-2xl transition-all overflow-hidden`}
                         >
                           <div className="relative aspect-video">
                             <img 
-                              src={`/api/image?url=${encodeURIComponent(ep.poster_url)}`} 
+                              src={`/api/image?url=${encodeURIComponent(ep.posterUrl || ep.poster_url)}`} 
                               alt={ep.name}
                               className={`w-full h-full object-cover transition-opacity ${ep.slug === slug ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
                             />
-                            {ep.slug === slug && <div className="absolute inset-0 bg-[#e53333]/10" />}
                           </div>
                           <div className="p-3">
                             <span className={`text-[9px] font-black uppercase tracking-widest line-clamp-1 ${ep.slug === slug ? 'text-[#e53333]' : 'text-white/40 group-hover:text-white'}`}>
@@ -213,9 +229,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
           </div>
 
           <div className="space-y-8">
-            {loadingInfo ? (
-              <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 animate-pulse h-48"></div>
-            ) : videoData && (
+            {!loadingInfo && videoInfo && (
               <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6">
                 <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
                   <div className="w-1 h-3 bg-[#e53333] rounded-full" />
@@ -224,15 +238,11 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div>
                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Views</p>
-                    <p className="text-lg font-black text-white tracking-tighter">{(videoData.views || 0).toLocaleString()}</p>
+                    <p className="text-lg font-black text-white tracking-tighter">{(videoInfo.views || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Rating</p>
-                    <p className="text-lg font-black text-white tracking-tighter">{videoData.rating || 0}/10</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Likes</p>
-                    <p className="text-lg font-black text-white tracking-tighter">{(videoData.likes || 0).toLocaleString()}</p>
+                    <p className="text-lg font-black text-white tracking-tighter">0/10</p>
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Status</p>
@@ -241,36 +251,23 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 </div>
               </div>
             )}
+
+            {/* Related Videos in Sidebar for desktop, but requested below analytics */}
+            {!loadingRelated && relatedVideos.length > 0 && (
+              <div className="space-y-6">
+                <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                  <div className="w-1 h-3 bg-[#e53333] rounded-full" />
+                  Related
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  {relatedVideos.map((video: any) => (
+                    <VideoCard key={video.id} video={video} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Related Videos Section */}
-        {loadingRelated ? (
-          <section className="pt-16 border-t border-white/5 animate-pulse">
-            <div className="h-8 bg-white/5 w-48 mb-10 rounded"></div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-               <div className="aspect-[2/3] bg-white/5 rounded-2xl"></div>
-               <div className="aspect-[2/3] bg-white/5 rounded-2xl hidden sm:block"></div>
-               <div className="aspect-[2/3] bg-white/5 rounded-2xl hidden lg:block"></div>
-               <div className="aspect-[2/3] bg-white/5 rounded-2xl hidden xl:block"></div>
-            </div>
-          </section>
-        ) : relatedVideos.length > 0 && (
-          <section className="pt-16 border-t border-white/5">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-1.5 h-8 bg-[#e53333] rounded-full" />
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-[0.3em] text-white">Related Transmissions</h2>
-                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Based on frequency: {videoTags.slice(0, 3).join(", ")}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {relatedVideos.map((video: any) => (
-                <VideoCard key={video.id} video={video} />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );
