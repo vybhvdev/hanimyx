@@ -1,6 +1,8 @@
 import Hanime from "@/lib/providers/hanime";
 import VideoCard from "@/components/VideoCard";
 
+export const dynamic = "force-dynamic";
+
 export default async function PopularPage({ searchParams }: { searchParams: { page: string } }) {
   const page = parseInt(searchParams.page || "0");
   const provider = new Hanime();
