@@ -71,9 +71,8 @@ export default async function TagsPage() {
               <div className="relative aspect-square bg-[#0a0a0a] rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#e53333]/50 transition-all duration-500 shadow-2xl">
                 {coverUrl && (
                   <img 
-                    src={coverUrl} 
+                    src={`/api/image?url=${encodeURIComponent(coverUrl)}`} 
                     alt={tag.text}
-                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover opacity-40 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700"
                   />
                 )}
