@@ -94,7 +94,7 @@ export default async function WatchPage({
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase italic tracking-tighter leading-tight border-l-4 border-[#e53333] pl-4">
-                    {videoInfo.hentai_franchise?.name || 'Unknown Video'}
+                    {videoData.name || videoInfo.hentai_franchise?.name || 'Unknown Video'}
                   </h1>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {unifiedTags.map((tag: string) => (

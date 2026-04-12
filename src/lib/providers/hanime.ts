@@ -152,9 +152,13 @@ export default class Hanime {
 
   public async getInfo(slug: string) {
     let result: any = null;
+    
+    // HaniAPI Fetch
+    const haniController = new AbortController();
+    const haniTimeout = setTimeout(() => haniController.abort(), 5000);
     try {
       const haniApiUrl = `https://haniapi-nyt92.vercel.app/getInfo/${slug}`;
-      const haniRes = await fetch(haniApiUrl);
+      const haniRes = await fetch(haniApiUrl, { signal: haniController.signal });
       if (haniRes.ok) {
         const haniJson = await haniRes.json();
         if (haniJson && haniJson.id) {
@@ -180,13 +184,20 @@ export default class Hanime {
         }
       }
     } catch (e) {
-      console.error("HaniAPI getInfo error:", e);
+      console.error("HaniAPI getInfo error or timeout:", e);
+    } finally {
+      clearTimeout(haniTimeout);
     }
 
-    // Always attempt to supplement with real franchise data from HTML
+    // HTML Scraping Fetch
+    const htmlController = new AbortController();
+    const htmlTimeout = setTimeout(() => htmlController.abort(), 5000);
     try {
       const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-      const response = await fetch(url, { headers: this.HEADERS });
+      const response = await fetch(url, { 
+        headers: this.HEADERS,
+        signal: htmlController.signal 
+      });
       if (response.ok) {
         const html = await response.text();
         
@@ -194,6 +205,12 @@ export default class Hanime {
         const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"/);
         if (franchiseMatch && result) {
           result.hentai_franchise.name = franchiseMatch[1];
+        }
+
+        // Extract Episode Name if missing or generic
+        const nameMatch = html.match(/hentai_video:\{id:\d+,name:"(.*?)"/);
+        if (nameMatch && result) {
+          result.hentai_video.name = nameMatch[1];
         }
 
         // Extract Episodes Array
@@ -228,9 +245,12 @@ export default class Hanime {
             result.hentai_franchise_hentai_videos = episodes;
           } else {
             // Fallback if HaniAPI failed but HTML scraping worked
-            const videoMatch = html.match(/hentai_video:\{(?:.*?)*id:(\d+)(?:.*?)*name:"(.*?)"/);
             result = {
-              hentai_video: { id: videoMatch ? parseInt(videoMatch[1]) : 0, slug },
+              hentai_video: { 
+                id: nameMatch ? parseInt(html.match(/id:(\d+)/)?.[1] || "0") : 0, 
+                name: nameMatch ? nameMatch[1] : "",
+                slug 
+              },
               hentai_franchise: { name: franchiseMatch ? franchiseMatch[1] : "" },
               hentai_franchise_hentai_videos: episodes,
               hentai_tags: []
@@ -239,28 +259,37 @@ export default class Hanime {
         }
       }
     } catch (e) {
-      console.error("Scraping supplement error:", e);
+      console.error("Scraping supplement error or timeout:", e);
+    } finally {
+      clearTimeout(htmlTimeout);
     }
 
     if (result) return result;
 
-    // Last resort fallback
-    const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-    const response = await fetch(url, { headers: this.HEADERS });
-    if (!response.ok) return null;
-    
-    const html = await response.text();
-    const $ = load(html);
-    const script = $('script:contains("window.__NUXT__")').html();
-    if (!script) return null;
-    
+    // Last resort fallback (with timeout)
+    const finalController = new AbortController();
+    const finalTimeout = setTimeout(() => finalController.abort(), 5000);
     try {
-        const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
-        const json = new Function(`return ${jsonStr}`)();
-        return json.state.data.video;
+      const url = `${this.BASE_URL}/videos/hentai/${slug}`;
+      const response = await fetch(url, { 
+        headers: this.HEADERS,
+        signal: finalController.signal
+      });
+      if (!response.ok) return null;
+      
+      const html = await response.text();
+      const $ = load(html);
+      const script = $('script:contains("window.__NUXT__")').html();
+      if (!script) return null;
+      
+      const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
+      const json = new Function(`return ${jsonStr}`)();
+      return json.state.data.video;
     } catch (e) {
-        console.error("Failed to parse Nuxt state", e);
-        return null;
+      console.error("Final fallback error or timeout:", e);
+      return null;
+    } finally {
+      clearTimeout(finalTimeout);
     }
   }
 
