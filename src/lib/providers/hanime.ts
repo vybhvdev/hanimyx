@@ -176,7 +176,8 @@ export default class Hanime {
             },
             hentai_tags: (haniJson.tags || []).map((t: string) => ({ text: t })),
             hentai_franchise: {
-              name: haniJson.title
+              name: haniJson.title,
+              slug: ""
             },
             hentai_franchise_hentai_videos: []
           };
@@ -200,11 +201,14 @@ export default class Hanime {
       if (response.ok) {
         const html = await response.text();
         
-        const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"/);
+        // Extract Franchise Info
+        const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"(?:,.*?)*,slug:"(.*?)"/);
         if (franchiseMatch && result) {
           result.hentai_franchise.name = franchiseMatch[1];
+          result.hentai_franchise.slug = franchiseMatch[2];
         }
 
+        // Extract Episode Name
         const nameMatch = html.match(/hentai_video:\{id:\d+,name:"(.*?)"/);
         if (nameMatch && result) {
           result.hentai_video.name = nameMatch[1];
@@ -225,22 +229,27 @@ export default class Hanime {
             currentIdx++;
           }
 
-          // Use improved regex for better matching with unicode escapes
           const episodeRegex = /\{id:(\d+),name:"([^"]+)",slug:"([^"]+)"[^}]*poster_url:"([^"]+)"/g;
           const episodeMatchesArray = Array.from(episodesStr.matchAll(episodeRegex));
-          const episodes = [];
+          let episodes = [];
           
+          const franchiseSlug = franchiseMatch ? franchiseMatch[2] : "";
+
           for (const match of episodeMatchesArray) {
-            const decodedPosterUrl = match[4].replace(/\\u002F/g, "/");
-            episodes.push({
-              id: parseInt(match[1]),
-              name: match[2],
-              slug: match[3],
-              poster_url: decodedPosterUrl,
-            });
+            const epSlug = match[3];
+            // Filter by franchise slug prefix to ensure they belong to the same series
+            if (!franchiseSlug || epSlug.startsWith(franchiseSlug)) {
+              const decodedPosterUrl = match[4].replace(/\\u002F/g, "/");
+              episodes.push({
+                id: parseInt(match[1]),
+                name: match[2],
+                slug: epSlug,
+                poster_url: decodedPosterUrl,
+              });
+            }
           }
 
-          // Include current video if missing from franchise list
+          // Ensure current video is in the list
           if (result && !episodes.find(e => e.id === result.hentai_video.id)) {
             episodes.push({
               id: result.hentai_video.id,
@@ -261,7 +270,10 @@ export default class Hanime {
                 name: nameMatch ? nameMatch[1] : "",
                 slug 
               },
-              hentai_franchise: { name: franchiseMatch ? franchiseMatch[1] : "" },
+              hentai_franchise: { 
+                name: franchiseMatch ? franchiseMatch[1] : "",
+                slug: franchiseMatch ? franchiseMatch[2] : ""
+              },
               hentai_franchise_hentai_videos: episodes,
               hentai_tags: []
             };
