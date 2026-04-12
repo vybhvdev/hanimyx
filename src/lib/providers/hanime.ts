@@ -85,7 +85,6 @@ export default class Hanime {
       });
 
       if (!response.ok) {
-        // Fallback to mirror search
         const fallbackRes = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
           method: "POST",
           headers: { ...this.HEADERS, "Content-Type": "application/json" },
@@ -201,19 +200,16 @@ export default class Hanime {
       if (response.ok) {
         const html = await response.text();
         
-        // Extract Franchise Name
         const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"/);
         if (franchiseMatch && result) {
           result.hentai_franchise.name = franchiseMatch[1];
         }
 
-        // Extract Episode Name if missing or generic
         const nameMatch = html.match(/hentai_video:\{id:\d+,name:"(.*?)"/);
         if (nameMatch && result) {
           result.hentai_video.name = nameMatch[1];
         }
 
-        // Extract Episodes Array
         const episodesPrefix = "hentai_franchise_hentai_videos:[";
         const startIdx = html.indexOf(episodesPrefix);
         if (startIdx !== -1) {
@@ -229,22 +225,36 @@ export default class Hanime {
             currentIdx++;
           }
 
-          const episodeMatches = episodesStr.matchAll(/\{id:(\d+),name:"(.*?)"(?:,.*?)*,slug:"(.*?)"(?:,.*?)*,poster_url:"(.*?)"/g);
-          const episodeMatchesArray = Array.from(episodeMatches);
+          // Use improved regex for better matching with unicode escapes
+          const episodeRegex = /\{id:(\d+),name:"([^"]+)",slug:"([^"]+)"[^}]*poster_url:"([^"]+)"/g;
+          const episodeMatchesArray = Array.from(episodesStr.matchAll(episodeRegex));
           const episodes = [];
+          
           for (const match of episodeMatchesArray) {
+            const decodedPosterUrl = match[4].replace(/\\u002F/g, "/");
             episodes.push({
               id: parseInt(match[1]),
               name: match[2],
               slug: match[3],
-              poster_url: JSON.parse(`"${match[4]}"`), // Decode unicode escaped URL
+              poster_url: decodedPosterUrl,
             });
           }
+
+          // Include current video if missing from franchise list
+          if (result && !episodes.find(e => e.id === result.hentai_video.id)) {
+            episodes.push({
+              id: result.hentai_video.id,
+              name: result.hentai_video.name,
+              slug: result.hentai_video.slug,
+              poster_url: result.hentai_video.poster_url,
+            });
+          }
+          
+          episodes.sort((a, b) => a.id - b.id);
           
           if (result) {
             result.hentai_franchise_hentai_videos = episodes;
           } else {
-            // Fallback if HaniAPI failed but HTML scraping worked
             result = {
               hentai_video: { 
                 id: nameMatch ? parseInt(html.match(/id:(\d+)/)?.[1] || "0") : 0, 
@@ -266,27 +276,20 @@ export default class Hanime {
 
     if (result) return result;
 
-    // Last resort fallback (with timeout)
     const finalController = new AbortController();
     const finalTimeout = setTimeout(() => finalController.abort(), 5000);
     try {
       const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-      const response = await fetch(url, { 
-        headers: this.HEADERS,
-        signal: finalController.signal
-      });
+      const response = await fetch(url, { headers: this.HEADERS, signal: finalController.signal });
       if (!response.ok) return null;
-      
       const html = await response.text();
       const $ = load(html);
       const script = $('script:contains("window.__NUXT__")').html();
       if (!script) return null;
-      
       const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
       const json = new Function(`return ${jsonStr}`)();
       return json.state.data.video;
     } catch (e) {
-      console.error("Final fallback error or timeout:", e);
       return null;
     } finally {
       clearTimeout(finalTimeout);
@@ -295,13 +298,11 @@ export default class Hanime {
 
   public async getStreams(identifier: string | number) {
     try {
-      // Try Cloudflare Worker first
       const haniApiUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/streams/${identifier}`;
       const haniRes = await fetch(haniApiUrl);
       if (haniRes.ok) {
         const haniJson = await haniRes.json();
         const streams = Array.isArray(haniJson) ? haniJson : (haniJson.streams || []);
-        
         if (streams.length > 0) {
           return streams.map((st: any) => ({
             ...st,
@@ -315,10 +316,7 @@ export default class Hanime {
     }
 
     const ts = Math.floor(Date.now() / 1000).toString();
-    const signature = crypto
-      .createHmac("sha256", this.SECRET)
-      .update(ts)
-      .digest("hex");
+    const signature = crypto.createHmac("sha256", this.SECRET).update(ts).digest("hex");
 
     try {
       const response = await fetch(
@@ -345,34 +343,23 @@ export default class Hanime {
           if (finalUrl.includes("streamable.cloud") && st.extra2) {
             finalUrl = `https://weeb.hanime.tv${st.extra2}`;
           }
-          return {
-            ...st,
-            url: finalUrl,
-            height: st.height || "720",
-          };
+          return { ...st, url: finalUrl, height: st.height || "720" };
         });
     } catch (e) {
-      console.error("Fallback Streams error:", e);
       return [];
     }
   }
 
-  // Helper for client-side signature since 'crypto' module isn't in browser
   public static async generateSignature(ts: string, secret: string) {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(secret);
     const msgData = encoder.encode(ts);
-    
     const cryptoKey = await globalThis.crypto.subtle.importKey(
       "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
     );
-    
     const signature = await globalThis.crypto.subtle.sign("HMAC", cryptoKey, msgData);
-    return Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
-
 
   private mapToVideo(raw: any): any {
     return {
