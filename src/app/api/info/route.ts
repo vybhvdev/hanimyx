@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import Hanime from '@/lib/providers/hanime';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,14 +9,47 @@ export async function GET(request: Request) {
   }
 
   try {
-    const hanime = new Hanime();
-    const info = await hanime.getInfo(slug);
+    const workerUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/info/${slug}`;
+    const infoRes = await fetch(workerUrl, {
+      headers: {
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
 
-    if (!info) {
+    if (!infoRes.ok) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    return NextResponse.json(info, {
+    const info = await infoRes.json();
+
+    // Map the worker's response to the format expected by the client
+    const mappedInfo = {
+      hentai_video: {
+        id: info.id || 0,
+        name: info.name || slug,
+        description: info.description || "",
+        slug: slug,
+        poster_url: "", 
+        views: info.views || 0,
+        rating: 0,
+        likes: 0,
+        downloads: 0,
+        tags: info.tags || [],
+      },
+      hentai_tags: (info.tags || []).map((t: string) => ({ text: t })),
+      hentai_franchise: {
+        name: info.franchiseName || "",
+        slug: ""
+      },
+      hentai_franchise_hentai_videos: (info.episodes || []).map((ep: any) => ({
+        id: ep.id,
+        name: ep.name,
+        slug: ep.slug,
+        poster_url: ep.posterUrl
+      }))
+    };
+
+    return NextResponse.json(mappedInfo, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },
