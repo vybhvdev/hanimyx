@@ -49,7 +49,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         const relatedSearchTags = videoTags.slice(0, 3);
         
         if (relatedSearchTags.length > 0) {
-          fetch("https://search.htv-services.com", {
+          fetch("/api/search", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
