@@ -16,19 +16,24 @@ export default function WatchPageClient({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Parallel fetch for Info and Streams
+    let isMounted = true;
+
     const fetchInfo = async () => {
       try {
         const infoRes = await fetch(`/api/info?slug=${slug}`, { cache: "no-store" });
         if (!infoRes.ok) throw new Error("Video not found");
         const infoData = await infoRes.json();
-        setVideoInfo(infoData);
-        setLoadingInfo(false);
+        if (isMounted) {
+          setVideoInfo(infoData);
+          setLoadingInfo(false);
+        }
         return infoData;
       } catch (err: any) {
-        setError(err.message);
-        setLoadingInfo(false);
-        setLoadingRelated(false);
+        if (isMounted) {
+          setError(err.message);
+          setLoadingInfo(false);
+          setLoadingRelated(false);
+        }
         return null;
       }
     };
@@ -37,21 +42,21 @@ export default function WatchPageClient({ slug }: { slug: string }) {
       try {
         const res = await fetch(`/api/streams?slug=${slug}`);
         const data = await res.json();
-        setStreams(data?.streams || data || []);
-        setLoadingStreams(false);
+        if (isMounted) {
+          setStreams(data?.streams || data || []);
+          setLoadingStreams(false);
+        }
       } catch (err) {
-        console.error(err);
-        setLoadingStreams(false);
+        console.error("Streams fetch error:", err);
+        if (isMounted) setLoadingStreams(false);
       }
     };
 
-    // Start both simultaneously
     fetchStreams();
     fetchInfo().then(infoData => {
-      if (infoData) {
-        // 2. Fetch related videos after info is available
-        const videoTags = infoData?.hentai_video?.tags || [];
-        const relatedSearchTags = videoTags.slice(0, 3);
+      if (infoData && isMounted) {
+        const videoTags = infoData?.hentai_video?.tags || infoData?.tags || [];
+        const relatedSearchTags = Array.isArray(videoTags) ? videoTags.slice(0, 3) : [];
         
         if (relatedSearchTags.length > 0) {
           fetch("https://search.htv-services.com", {
@@ -69,10 +74,11 @@ export default function WatchPageClient({ slug }: { slug: string }) {
           })
             .then((res) => res.json())
             .then((data) => {
+              if (!isMounted) return;
               const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
               const related = (hits || [])
                 .filter((v: any) => v.slug !== slug)
-                .slice(0, 10)
+                .slice(0, 12)
                 .map((raw: any) => ({
                   id: raw.id,
                   name: raw.name,
@@ -85,14 +91,16 @@ export default function WatchPageClient({ slug }: { slug: string }) {
               setLoadingRelated(false);
             })
             .catch((err) => {
-              console.error(err);
-              setLoadingRelated(false);
+              console.error("Related videos error:", err);
+              if (isMounted) setLoadingRelated(false);
             });
         } else {
           setLoadingRelated(false);
         }
       }
     });
+
+    return () => { isMounted = false; };
   }, [slug]);
 
   if (error && !videoInfo) {
@@ -101,7 +109,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
 
   const videoData = videoInfo?.hentai_video;
   const videoId = videoData?.id;
-  const videoTags = videoData?.tags || [];
+  const videoTags = videoData?.tags || videoInfo?.tags || [];
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
   const displayTitle = videoData?.name || slug;
@@ -125,10 +133,10 @@ export default function WatchPageClient({ slug }: { slug: string }) {
   return (
     <div className="bg-[#0d0d0d] min-h-screen pb-20">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
           <div className="lg:col-span-2 space-y-4">
             {loadingStreams ? (
-              <div className="w-full aspect-video bg-white/5 animate-pulse rounded-2xl flex items-center justify-center">
+              <div className="w-full aspect-video bg-white/5 animate-pulse rounded-2xl flex items-center justify-center border border-white/5">
                 <span className="text-white/20 uppercase tracking-[0.3em] text-[10px] font-black">Syncing Stream...</span>
               </div>
             ) : (
@@ -192,7 +200,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                         >
                           <div className="relative aspect-video">
                             <img 
-                              src={`/api/image?url=${encodeURIComponent(ep.poster_url || "")}`} 
+                              src={`/api/image?url=${encodeURIComponent(ep.poster_url || ep.posterUrl || "")}`} 
                               alt={ep.name}
                               className={`w-full h-full object-cover transition-opacity ${ep.slug === slug ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
                             />
@@ -234,21 +242,36 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 </div>
               </div>
             )}
-
-            {!loadingRelated && relatedVideos.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-[10px] font-black text-[#e53333] uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-[#e53333] rounded-full" />
-                  Related
-                </h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {relatedVideos.map((video: any) => (
-                    <VideoCard key={video.id} video={video} />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Related Videos Section - Moved to Bottom */}
+        <div className="pt-16 border-t border-white/5">
+          <div className="flex items-center gap-3 mb-10 px-4 md:px-0">
+            <div className="w-1.5 h-8 bg-[#e53333] rounded-full" />
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-[0.3em] text-white">Related Transmissions</h2>
+              <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Based on frequency matching</p>
+            </div>
+          </div>
+
+          {loadingRelated ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 animate-pulse px-4 md:px-0">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="aspect-video bg-white/5 rounded-xl border border-white/5" />
+              ))}
+            </div>
+          ) : relatedVideos.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6 px-4 md:px-0">
+              {relatedVideos.map((video: any) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center bg-[#0a0a0a] rounded-3xl border border-white/5 border-dashed">
+              <p className="text-white/10 uppercase tracking-[0.4em] text-[10px] font-black">No matching signals found</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
