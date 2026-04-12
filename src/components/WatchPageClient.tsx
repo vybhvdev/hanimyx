@@ -109,7 +109,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
   const videoTags = videoInfo?.hentai_tags?.map((t:any)=>t.text) || [];
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
-  const displayTitle = videoInfo?.hentai_video?.name || slug;
+  const displayTitle = (videoInfo?.hentai_video?.name || slug).replace(/&#[Xx]([0-9A-Fa-f]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d)));
   const cleanDescription = videoInfo?.hentai_video?.description || 'No classified data available for this transmission.';
 
   const sortedStreams = (Array.isArray(streams) ? streams : []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
