@@ -1,7 +1,7 @@
 import Hanime from "@/lib/providers/hanime";
 import VideoCard from "@/components/VideoCard";
 
-export default async function PopularPage({ searchParams }: { searchParams: { page?: string } }) {
+export default async function PopularPage({ searchParams }: { searchParams: { page: string } }) {
   const page = parseInt(searchParams.page || "0");
   const provider = new Hanime();
   const popularVideos = await provider.getPopular(page + 1);
@@ -23,19 +23,27 @@ export default async function PopularPage({ searchParams }: { searchParams: { pa
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-4 py-8 border-t border-white/5">
-        <a 
-          href={page > 0 ? `/popular?page=${page - 1}` : "#"}
-          className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${page > 0 ? 'bg-white/5 text-white hover:bg-[#e53333]' : 'opacity-20 pointer-events-none text-white/40 border border-white/10'}`}
-        >
-          Previous
-        </a>
-        <span className="text-[10px] font-black text-[#e53333] bg-[#e53333]/10 px-4 py-2 rounded-full">
-          {page + 1}
+      <div className="flex items-center justify-center gap-6 py-8 border-t border-white/5">
+        {page > 0 ? (
+          <a 
+            href={`/popular?page=${page - 1}`}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all"
+          >
+            Previous
+          </a>
+        ) : (
+          <span className="bg-white/5 text-white/20 px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest border border-white/5 cursor-not-allowed">
+            Previous
+          </span>
+        )}
+        
+        <span className="text-[10px] font-black text-white uppercase tracking-widest">
+          PAGE {page + 1}
         </span>
+
         <a 
           href={`/popular?page=${page + 1}`}
-          className="px-6 py-2 bg-white/5 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-[#e53333] transition-all"
+          className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all"
         >
           Next
         </a>
