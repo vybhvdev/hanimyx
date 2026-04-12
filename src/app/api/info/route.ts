@@ -21,11 +21,24 @@ export async function GET(request: Request) {
     }
 
     const info = await infoRes.json();
+    let hvId = info.id || 0;
+      try {
+        const searchRes = await fetch('https://search.htv-services.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ search_text: slug, tags: [], tags_mode: 'AND', brands: [], blacklist: [], order_by: 'created_at_unix', page: 0 })
+        });
+        const searchData = await searchRes.json();
+        const hits = typeof searchData.hits === 'string' ? JSON.parse(searchData.hits) : searchData.hits;
+        const match = (hits || []).find((h) => h.slug === slug);
+        if (match) hvId = match.id;
+      } catch(e) {}
+    }
 
     // Map the worker's response to the format expected by the client
     const mappedInfo = {
       hentai_video: {
-        id: info.id || 0,
+        id: hvId,
         name: info.name || slug,
         description: info.description || "",
         slug: slug,
