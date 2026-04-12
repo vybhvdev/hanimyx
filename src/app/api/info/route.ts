@@ -28,7 +28,7 @@ export async function GET(request: Request) {
         const searchRes = await fetch('https://search.htv-services.com', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ search_text: slug, tags: [], tags_mode: 'AND', brands: [], blacklist: [], order_by: 'created_at_unix', page: 0 })
+          body: JSON.stringify({ search_text: slug.replace(/-/g, " "), tags: [], tags_mode: 'AND', brands: [], blacklist: [], order_by: 'created_at_unix', page: 0 })
         });
         const searchData = await searchRes.json();
         const hits = typeof searchData.hits === 'string' ? JSON.parse(searchData.hits) : searchData.hits;
