@@ -59,79 +59,53 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         const videoTags = videoData?.tags || infoData.tags || [];
         const relatedSearchTags = Array.isArray(videoTags) ? videoTags.slice(0, 3) : [];
         
+        const fetchRelated = async (tags: string[], query = "") => {
+          try {
+            const res = await fetch("/api/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                blacklist: [],
+                brands: [],
+                order_by: "created_at_unix",
+                page: 0,
+                tags: tags,
+                search_text: query,
+                tags_mode: "OR",
+              }),
+            });
+            
+            if (!res.ok) throw new Error("Search failed");
+            const data = await res.json();
+            if (!isMounted) return;
+
+            const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+            const related = (hits || [])
+              .filter((v: any) => v.slug !== slug)
+              .slice(0, 12)
+              .map((raw: any) => ({
+                id: raw.id,
+                name: raw.name,
+                slug: raw.slug,
+                posterUrl: raw.poster_url,
+                durationMs: raw.duration_in_ms,
+                tags: raw.tags || [],
+                brand: raw.brand || ""
+              }));
+            
+            setRelatedVideos(related);
+            setLoadingRelated(false);
+          } catch (err) {
+            console.error("Related fetch error:", err);
+            if (isMounted) setLoadingRelated(false);
+          }
+        };
+
         if (relatedSearchTags.length > 0) {
-          fetch("https://search.htv-services.com", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              blacklist: [],
-              brands: [],
-              order_by: "created_at_unix",
-              page: 0,
-              tags: relatedSearchTags,
-              search_text: "",
-              tags_mode: "OR",
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (!isMounted) return;
-              const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-              const related = (hits || [])
-                .filter((v: any) => v.slug !== slug)
-                .slice(0, 12)
-                .map((raw: any) => ({
-                  id: raw.id,
-                  name: raw.name,
-                  slug: raw.slug,
-                  posterUrl: raw.poster_url,
-                  durationMs: raw.duration_in_ms,
-                  tags: raw.tags,
-                }));
-              setRelatedVideos(related);
-              setLoadingRelated(false);
-            })
-            .catch((err) => {
-              console.error("Related videos error:", err);
-              if (isMounted) setLoadingRelated(false);
-            });
+          fetchRelated(relatedSearchTags);
         } else {
-          // Fallback search if no tags are found
           const fallbackQuery = slug.split('-').slice(0, 2).join(' ');
-          fetch("https://search.htv-services.com", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              blacklist: [],
-              brands: [],
-              order_by: "created_at_unix",
-              page: 0,
-              tags: [],
-              search_text: fallbackQuery,
-              tags_mode: "OR",
-            }),
-          })
-            .then(res => res.json())
-            .then(data => {
-              if (!isMounted) return;
-              const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-              const related = (hits || [])
-                .filter((v: any) => v.slug !== slug)
-                .slice(0, 12)
-                .map((raw: any) => ({
-                  id: raw.id,
-                  name: raw.name,
-                  slug: raw.slug,
-                  posterUrl: raw.poster_url,
-                  durationMs: raw.duration_in_ms,
-                  tags: raw.tags,
-                }));
-              setRelatedVideos(related);
-              setLoadingRelated(false);
-            })
-            .catch(() => {
-              if (isMounted) setLoadingRelated(false);
-            });
+          fetchRelated([], fallbackQuery);
         }
       }
     });
@@ -281,7 +255,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
           </div>
         </div>
 
-        {/* Related Videos Section - Moved to Bottom */}
+        {/* Related Videos Section */}
         <div className="pt-16 border-t border-white/5">
           <div className="flex items-center gap-3 mb-10 px-4 md:px-0">
             <div className="w-1.5 h-8 bg-[#e53333] rounded-full" />
