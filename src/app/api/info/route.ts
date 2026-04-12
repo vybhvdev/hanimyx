@@ -21,7 +21,9 @@ export async function GET(request: Request) {
     }
 
     const info = await infoRes.json();
+
     let hvId = info.id || 0;
+    if (hvId === 0) {
       try {
         const searchRes = await fetch('https://search.htv-services.com', {
           method: 'POST',
@@ -30,19 +32,18 @@ export async function GET(request: Request) {
         });
         const searchData = await searchRes.json();
         const hits = typeof searchData.hits === 'string' ? JSON.parse(searchData.hits) : searchData.hits;
-        const match = (hits || []).find((h) => h.slug === slug);
+        const match = (hits || []).find((h: any) => h.slug === slug);
         if (match) hvId = match.id;
       } catch(e) {}
     }
 
-    // Map the worker's response to the format expected by the client
     const mappedInfo = {
       hentai_video: {
         id: hvId,
         name: info.name || slug,
         description: info.description || "",
         slug: slug,
-        poster_url: "", 
+        poster_url: "",
         views: info.views || 0,
         rating: 0,
         likes: 0,
