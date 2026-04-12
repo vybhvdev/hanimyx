@@ -134,8 +134,8 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
       }
       
       // Force landscape on mobile if possible
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock("landscape").catch(() => {});
+      if (screen.orientation && (screen.orientation as any).lock) {
+        (screen.orientation as any).lock("landscape").catch(() => {});
       }
     } else {
       document.exitFullscreen();
