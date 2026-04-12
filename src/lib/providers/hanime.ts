@@ -13,116 +13,103 @@ export default class Hanime {
   };
 
   public async getRecent(page = 1) {
-    try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=created_at_unix&ordering=desc`;
-      const response = await fetch(haniApiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        const results = data.results || [];
-        return results.map((raw: any) => ({
-          id: raw.id,
-          name: raw.name || raw.title,
-          slug: raw.slug,
-          description: raw.description,
-          views: raw.views,
-          posterUrl: raw.cover_url || raw.poster_url,
-          coverUrl: raw.cover_url,
-          brand: raw.brand,
-          durationMs: raw.duration_in_ms,
-          tags: raw.tags || [],
-          releasedAt: raw.released_at || raw.created_at,
-        }));
-      }
-    } catch (e) {
-      console.error("HaniAPI Recent error:", e);
-    }
-
-    let response = await fetch(this.SEARCH_URL, {
-      method: "POST",
-      headers: { ...this.HEADERS, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        blacklist: [],
-        brands: [],
-        order_by: "created_at_unix",
-        page: page - 1,
-        tags: [],
-        search_text: "",
-        tags_mode: "AND",
-      }),
+    return this.htvSearch({
+      order_by: "created_at_unix",
+      page: page - 1,
+      search_text: "",
+      tags: [],
     });
-
-    if (!response.ok) {
-        // Fallback to mirror search
-        response = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
-            method: "POST",
-            headers: { ...this.HEADERS, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                search_text: "",
-                page: page - 1,
-                order_by: "created_at_unix",
-                ordering: "desc"
-            })
-        });
-    }
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-    return hits.map(this.mapToVideo);
   }
 
   public async getPopular(page = 1) {
-    try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=views&ordering=desc`;
-      const response = await fetch(haniApiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        const results = data.results || [];
-        return results.map((raw: any) => ({
-          id: raw.id,
-          name: raw.name || raw.title,
-          slug: raw.slug,
-          description: raw.description,
-          views: raw.views,
-          posterUrl: raw.cover_url || raw.poster_url,
-          coverUrl: raw.cover_url,
-          brand: raw.brand,
-          durationMs: raw.duration_in_ms,
-          tags: raw.tags || [],
-          releasedAt: raw.released_at || raw.created_at,
-        }));
-      }
-    } catch (e) {
-      console.error("HaniAPI Popular error:", e);
-    }
-    return [];
+    return this.htvSearch({
+      order_by: "views",
+      page: page - 1,
+      search_text: "",
+      tags: [],
+    });
   }
 
   public async getTrending(page = 1) {
+    return this.htvSearch({
+      order_by: "monthly_rank",
+      ordering: "asc",
+      page: page - 1,
+      search_text: "",
+      tags: [],
+    });
+  }
+
+  public async search(query: string, page = 1) {
+    return this.htvSearch({
+      order_by: "created_at_unix",
+      page: page - 1,
+      search_text: query,
+      tags: [],
+    });
+  }
+
+  public async searchByTag(tag: string, page = 1) {
+    return this.htvSearch({
+      order_by: "created_at_unix",
+      page: page - 1,
+      search_text: "",
+      tags: [tag],
+    });
+  }
+
+  private async htvSearch(options: {
+    blacklist?: string[];
+    brands?: string[];
+    order_by?: string;
+    ordering?: "asc" | "desc";
+    page?: number;
+    tags?: string[];
+    search_text?: string;
+    tags_mode?: "AND" | "OR";
+  }) {
     try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=monthly_rank&ordering=asc`;
-      const response = await fetch(haniApiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        const results = data.results || [];
-        return results.map((raw: any) => ({
-          id: raw.id,
-          name: raw.name || raw.title,
-          slug: raw.slug,
-          description: raw.description,
-          views: raw.views,
-          posterUrl: raw.cover_url || raw.poster_url,
-          coverUrl: raw.cover_url,
-          brand: raw.brand,
-          durationMs: raw.duration_in_ms,
-          tags: raw.tags || [],
-          releasedAt: raw.released_at || raw.created_at,
-        }));
+      const response = await fetch(this.SEARCH_URL, {
+        method: "POST",
+        headers: { ...this.HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blacklist: options.blacklist || [],
+          brands: options.brands || [],
+          order_by: options.order_by || "created_at_unix",
+          ordering: options.ordering || "desc",
+          page: options.page || 0,
+          tags: options.tags || [],
+          search_text: options.search_text || "",
+          tags_mode: options.tags_mode || "AND",
+        }),
+      });
+
+      if (!response.ok) {
+        // Fallback to mirror search
+        const fallbackRes = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
+          method: "POST",
+          headers: { ...this.HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            search_text: options.search_text || "",
+            page: options.page || 0,
+            tags: options.tags || [],
+            order_by: options.order_by || "created_at_unix",
+            ordering: options.ordering || "desc"
+          })
+        });
+        if (!fallbackRes.ok) return [];
+        const data = await fallbackRes.json();
+        const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+        return (hits || []).map((hit: any) => this.mapToVideo(hit));
       }
+
+      const data = await response.json();
+      const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+      return (hits || []).map((hit: any) => this.mapToVideo(hit));
     } catch (e) {
-      console.error("HaniAPI Trending error:", e);
+      console.error("HTV Search error:", e);
+      return [];
     }
-    return [];
   }
 
   public async getTags() {
@@ -161,106 +148,6 @@ export default class Hanime {
       console.error("HaniAPI getBrands error:", e);
     }
     return [];
-  }
-
-  public async searchByTag(tag: string, page = 1) {
-    try {
-      const response = await fetch(this.SEARCH_URL, {
-        method: "POST",
-        headers: { ...this.HEADERS, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blacklist: [],
-          brands: [],
-          order_by: "created_at_unix",
-          page: page - 1,
-          tags: [tag],
-          search_text: "",
-          tags_mode: "AND",
-        }),
-      });
-
-      if (!response.ok) {
-        // Fallback to mirror search if primary fails
-        const fallbackRes = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
-          method: "POST",
-          headers: { ...this.HEADERS, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tags: [tag],
-            page: page - 1,
-            order_by: "created_at_unix",
-            ordering: "desc"
-          })
-        });
-        if (!fallbackRes.ok) return [];
-        const data = await fallbackRes.json();
-        const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-        return hits.map(this.mapToVideo);
-      }
-
-      const data = await response.json();
-      const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-      return hits.map(this.mapToVideo);
-    } catch (e) {
-      console.error("HaniAPI Tag Search error:", e);
-      return [];
-    }
-  }
-
-  public async search(query: string, page = 1) {
-    try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=${encodeURIComponent(query)}`;
-      const response = await fetch(haniApiUrl);
-      if (response.ok) {
-        const data = await response.json();
-        const results = data.results || [];
-        return results.map((raw: any) => ({
-          id: raw.id,
-          name: raw.name || raw.title,
-          slug: raw.slug,
-          description: raw.description,
-          views: raw.views,
-          posterUrl: raw.cover_url || raw.poster_url,
-          coverUrl: raw.cover_url,
-          brand: raw.brand,
-          durationMs: raw.duration_in_ms,
-          tags: raw.tags || [],
-          releasedAt: raw.released_at || raw.created_at,
-        }));
-      }
-    } catch (e) {
-      console.error("HaniAPI Search error:", e);
-    }
-
-    let response = await fetch(this.SEARCH_URL, {
-      method: "POST",
-      headers: { ...this.HEADERS, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        blacklist: [],
-        brands: [],
-        order_by: "created_at_unix",
-        page: page - 1,
-        tags: [],
-        search_text: query,
-        tags_mode: "AND",
-      }),
-    });
-
-    if (!response.ok) {
-        // Fallback to mirror search
-        response = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
-            method: "POST",
-            headers: { ...this.HEADERS, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                search_text: query,
-                page: page - 1,
-            })
-        });
-    }
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-    return hits.map(this.mapToVideo);
   }
 
   public async getInfo(slug: string) {
