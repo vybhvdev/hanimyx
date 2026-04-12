@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const workerUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/info/${slug}`;
+    const workerUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/info/${slug}?t=${Date.now()}`;
     const infoRes = await fetch(workerUrl, {
       headers: {
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
