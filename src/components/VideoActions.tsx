@@ -67,7 +67,7 @@ export default function VideoActions({ slug, title, streamUrl }: VideoActionsPro
       {streamUrl && (
         <a 
           href={streamUrl}
-          download={`${slug}.m3u8`}
+          download={`${title}.m3u8`}
           className="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white hover:bg-white/10 transition-all"
         >
           <Download size={14} strokeWidth={3} />

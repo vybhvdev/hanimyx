@@ -45,50 +45,45 @@ export default function WatchPageClient({ slug }: { slug: string }) {
 
         // Fetch related videos based on tags
         const videoData = infoData?.hentai_video;
-        const videoTags = videoData?.tags || infoData?.hentai_tags?.map((t: any) => t.text) || [];
+        const videoTags = Array.isArray(videoData?.tags) ? videoData.tags : (Array.isArray(infoData?.hentai_tags) ? infoData.hentai_tags.map((t: any) => t.text) : []);
         const relatedSearchTags = videoTags.slice(0, 3);
         
-        if (relatedSearchTags.length > 0) {
-          fetch("https://search.htv-services.com", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            },
-            body: JSON.stringify({
-              blacklist: [],
-              brands: [],
-              order_by: "created_at_unix",
-              page: 0,
-              tags: relatedSearchTags,
-              search_text: "",
-              tags_mode: "OR",
-            }),
+        fetch("https://search.htv-services.com", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            blacklist: [],
+            brands: [],
+            order_by: "created_at_unix",
+            page: 0,
+            tags: relatedSearchTags,
+            search_text: "",
+            tags_mode: "OR",
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+            const related = (hits || [])
+              .filter((v: any) => v.slug !== slug)
+              .slice(0, 10)
+              .map((raw: any) => ({
+                id: raw.id,
+                name: raw.name,
+                slug: raw.slug,
+                posterUrl: raw.poster_url,
+                durationMs: raw.duration_in_ms,
+                tags: raw.tags,
+              }));
+            setRelatedVideos(related);
+            setLoadingRelated(false);
           })
-            .then((res) => res.json())
-            .then((data) => {
-              const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
-              const related = (hits || [])
-                .filter((v: any) => v.slug !== slug)
-                .slice(0, 10)
-                .map((raw: any) => ({
-                  id: raw.id,
-                  name: raw.name,
-                  slug: raw.slug,
-                  posterUrl: raw.poster_url,
-                  durationMs: raw.duration_in_ms,
-                  tags: raw.tags,
-                }));
-              setRelatedVideos(related);
-              setLoadingRelated(false);
-            })
-            .catch((err) => {
-              console.error(err);
-              setLoadingRelated(false);
-            });
-        } else {
-          setLoadingRelated(false);
-        }
+          .catch((err) => {
+            console.error(err);
+            setLoadingRelated(false);
+          });
 
       } catch (err) {
         console.error(err);
@@ -111,11 +106,23 @@ export default function WatchPageClient({ slug }: { slug: string }) {
   const videoTags = Array.isArray(videoData?.tags) ? videoData.tags : (Array.isArray(videoInfo?.hentai_tags) ? videoInfo.hentai_tags.map((t: any) => t.text) : []);
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
+  const displayTitle = videoInfo?.title || (videoData?.name && videoData.name !== slug ? videoData.name : null) || videoInfo?.name || videoInfo?.hentai_franchise?.name || slug;
+  const cleanDescription = (videoData?.description || '').replace(/\\n/g, " ").replace(/\\r/g, "").replace(/\\/g, "").trim() || 'No classified data available for this transmission.';
+
   const sortedStreams = (Array.isArray(streams) ? streams : []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
 
   const rawEpisodes = videoInfo?.hentai_franchise_hentai_videos || videoInfo?.hentai_franchise?.hentai_videos || [];
-  const episodes = Array.isArray(rawEpisodes) ? rawEpisodes : [];
+  let episodes = Array.isArray(rawEpisodes) ? [...rawEpisodes] : [];
+  if (videoInfo && !episodes.find(ep => ep.slug === slug)) {
+    episodes.push({
+      id: videoId || 0,
+      name: displayTitle,
+      slug: slug,
+      poster_url: videoData?.poster_url || "",
+    });
+    episodes.sort((a, b) => a.id - b.id);
+  }
 
   return (
     <div className="bg-[#0d0d0d] min-h-screen pb-20">
