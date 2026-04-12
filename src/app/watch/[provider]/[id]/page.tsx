@@ -1,3 +1,6 @@
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
+
 import Hanime from "@/lib/providers/hanime";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoActions from "@/components/VideoActions";
