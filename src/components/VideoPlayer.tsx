@@ -28,7 +28,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
   const [streams, setStreams] = useState<Stream[]>(initialStreams || []);
   const [url, setUrl] = useState(initialUrl || "");
-  const [loading, setLoading] = useState(true); // Always start loading until canplay
+  const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(!initialUrl);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -123,17 +123,16 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   };
 
   const toggleFullscreen = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     if (!document.fullscreenElement) {
-      if (video.requestFullscreen) {
-        video.requestFullscreen();
-      } else if ((video as any).webkitRequestFullscreen) {
-        (video as any).webkitRequestFullscreen();
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
       }
       
-      // Force landscape on mobile if possible
       if (screen.orientation && (screen.orientation as any).lock) {
         (screen.orientation as any).lock("landscape").catch(() => {});
       }
@@ -194,7 +193,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   return (
     <div 
       ref={containerRef}
-      className="relative group aspect-video rounded-2xl overflow-hidden bg-black border border-white/5 shadow-2xl transition-all select-none"
+      className={`relative group aspect-video rounded-2xl overflow-hidden bg-black border border-white/5 shadow-2xl transition-all select-none ${isFullscreen ? 'rounded-none border-none w-screen h-screen' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
@@ -211,8 +210,15 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
         playsInline
       />
 
+      {/* Loading Spinner */}
+      {loading && !error && !isFetching && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-40">
+          <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* Custom Controls Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/20 flex flex-col justify-end p-4 md:p-6 transition-opacity duration-500 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-4 md:p-6 transition-all duration-500 z-50 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         
         {/* Progress Bar */}
         <div className="relative w-full group/progress mb-4 cursor-pointer">
@@ -289,19 +295,19 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
               </div>
             )}
 
-            <button onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors transform hover:scale-110">
+            <button onClick={toggleFullscreen} className={`text-white/80 hover:text-white transition-colors transform hover:scale-110 ${isFullscreen ? 'text-[#e53333]' : ''}`}>
               <Maximize size={20} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* States (Loading/Error) */}
-      {(loading || isFetching || error || !url) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/95 z-50">
-          {(loading || isFetching) && !error ? (
+      {/* Global State Overlays (Fetching/Error) */}
+      {(isFetching || error || !url) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/95 z-[60]">
+          {isFetching && !error ? (
             <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin mb-6" />
+              <div className="w-12 h-12 border-2 border-white/10 border-t-[#e53333] rounded-full animate-spin mb-6" />
               <div className="space-y-1 text-center">
                 <p className="text-[10px] font-black tracking-[0.4em] text-white uppercase">Syncing Uplink</p>
                 <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Establishing encrypted tunnel</p>

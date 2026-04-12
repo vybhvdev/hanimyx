@@ -47,9 +47,13 @@ export default async function WatchPage({
                   </h1>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {unifiedTags.map((tag: string) => (
-                      <span key={tag} className="text-[9px] font-black bg-white/5 border border-white/5 hover:border-[#e53333]/30 px-3 py-1 rounded-full uppercase tracking-[0.1em] text-white/40 hover:text-white transition-all cursor-default">
+                      <a 
+                        key={tag} 
+                        href={`/tags/${encodeURIComponent(tag.toLowerCase().replace(/ /g, "-"))}`}
+                        className="text-[9px] font-black bg-white/5 border border-white/5 hover:border-[#e53333]/30 px-3 py-1 rounded-full uppercase tracking-[0.1em] text-white/40 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                      >
                         {tag}
-                      </span>
+                      </a>
                     ))}
                   </div>
                 </div>
