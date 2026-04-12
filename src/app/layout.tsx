@@ -30,20 +30,22 @@ export default function RootLayout({
                 <a href="/" className="hover:text-[#e53333] transition-colors">Home</a>
                 <a href="/popular" className="hover:text-[#e53333] transition-colors">Popular</a>
                 <a href="/trending" className="hover:text-[#e53333] transition-colors">Trending</a>
+                <a href="/tags" className="hover:text-[#e53333] transition-colors">Tags</a>
                 <a href="/brands" className="hover:text-[#e53333] transition-colors">Brands</a>
               </nav>
             </div>
             <div className="flex-1 max-w-md ml-10">
-              <div className="relative group">
+              <form action="/search" method="GET" className="relative group">
                 <input 
                   type="search" 
+                  name="q"
                   placeholder="Search Hentai..." 
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-xs font-bold focus:outline-none focus:border-[#e53333]/50 focus:bg-white/10 transition-all placeholder:text-white/20"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#e53333] transition-colors">
+                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#e53333] transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                </div>
-              </div>
+                </button>
+              </form>
             </div>
           </div>
         </header>

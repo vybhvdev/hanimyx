@@ -71,6 +71,98 @@ export default class Hanime {
     return hits.map(this.mapToVideo);
   }
 
+  public async getPopular(page = 1) {
+    try {
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=views&ordering=desc`;
+      const response = await fetch(haniApiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        const results = data.results || [];
+        return results.map((raw: any) => ({
+          id: raw.id,
+          name: raw.name || raw.title,
+          slug: raw.slug,
+          description: raw.description,
+          views: raw.views,
+          posterUrl: raw.cover_url || raw.poster_url,
+          coverUrl: raw.cover_url,
+          brand: raw.brand,
+          durationMs: raw.duration_in_ms,
+          tags: raw.tags || [],
+          releasedAt: raw.released_at || raw.created_at,
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI Popular error:", e);
+    }
+    return [];
+  }
+
+  public async getTrending(page = 1) {
+    try {
+      const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=&order_by=monthly_rank&ordering=asc`;
+      const response = await fetch(haniApiUrl);
+      if (response.ok) {
+        const data = await response.json();
+        const results = data.results || [];
+        return results.map((raw: any) => ({
+          id: raw.id,
+          name: raw.name || raw.title,
+          slug: raw.slug,
+          description: raw.description,
+          views: raw.views,
+          posterUrl: raw.cover_url || raw.poster_url,
+          coverUrl: raw.cover_url,
+          brand: raw.brand,
+          durationMs: raw.duration_in_ms,
+          tags: raw.tags || [],
+          releasedAt: raw.released_at || raw.created_at,
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI Trending error:", e);
+    }
+    return [];
+  }
+
+  public async getTags() {
+    try {
+      const response = await fetch("https://haniapi-nyt92.vercel.app/browse");
+      if (response.ok) {
+        const data = await response.json();
+        return (data.tags || []).map((t: any) => ({
+          id: t.id,
+          text: t.text,
+          count: t.count,
+          description: t.description,
+          imageUrl: t.wide_image_url || t.tall_image_url
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI getTags error:", e);
+    }
+    return [];
+  }
+
+  public async getBrands() {
+    try {
+      const response = await fetch("https://haniapi-nyt92.vercel.app/browse");
+      if (response.ok) {
+        const data = await response.json();
+        return (data.brands || []).map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          slug: b.slug,
+          count: b.count,
+          logoUrl: b.logo_url
+        }));
+      }
+    } catch (e) {
+      console.error("HaniAPI getBrands error:", e);
+    }
+    return [];
+  }
+
   public async search(query: string, page = 1) {
     try {
       const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=${encodeURIComponent(query)}`;

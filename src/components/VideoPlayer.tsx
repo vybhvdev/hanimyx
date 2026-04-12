@@ -146,30 +146,30 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
       {/* Quality Selector UI */}
       {streams.length > 1 && !loading && !error && (
-        <div className="absolute bottom-12 right-4 z-20">
+        <div className="absolute bottom-12 right-2 z-20">
           <div className="relative">
             <button 
               onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(!isSettingsOpen); }}
-              className="flex items-center gap-2 bg-black/60 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-white/80 transition-all"
+              className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md border border-white/5 hover:bg-black/60 hover:border-white/20 px-2.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white/70 transition-all shadow-xl"
             >
-              <Settings size={14} className={isSettingsOpen ? "text-[#e53333] animate-spin-slow" : ""} />
+              <Settings size={12} className={isSettingsOpen ? "text-[#e53333] animate-spin-slow" : ""} />
               {currentQuality}
             </button>
 
             {isSettingsOpen && (
-              <div className="absolute bottom-full right-0 mb-2 w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+              <div className="absolute bottom-full right-0 mb-2 w-28 bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/5">
                 <div className="p-2 border-b border-white/5 bg-white/5">
-                  <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Quality</span>
+                  <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/20">Quality</span>
                 </div>
                 <div className="py-1">
                   {streams.sort((a, b) => parseInt(b.height as string) - parseInt(a.height as string)).map((s) => (
                     <button
                       key={s.height}
                       onClick={() => changeQuality(s.url, s.height.toString() + 'p')}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase transition-colors ${currentQuality === s.height.toString() + 'p' ? 'text-[#e53333] bg-white/5' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                      className={`w-full flex items-center justify-between px-3 py-2 text-[9px] font-black uppercase transition-colors ${currentQuality === s.height.toString() + 'p' ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                     >
                       {s.height}p
-                      {currentQuality === s.height.toString() + 'p' && <Check size={10} />}
+                      {currentQuality === s.height.toString() + 'p' && <Check size={8} strokeWidth={4} />}
                     </button>
                   ))}
                 </div>
