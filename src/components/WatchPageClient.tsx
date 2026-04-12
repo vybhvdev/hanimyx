@@ -105,24 +105,24 @@ export default function WatchPageClient({ slug }: { slug: string }) {
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">{error}</div>;
   }
 
-  const videoId = videoInfo?.id;
-  const videoTags = videoInfo?.tags || [];
+  const videoId = videoInfo?.hentai_video?.id;
+  const videoTags = videoInfo?.hentai_tags?.map((t:any)=>t.text) || [];
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
-  const displayTitle = videoInfo?.name || slug;
-  const cleanDescription = videoInfo?.description || 'No classified data available for this transmission.';
+  const displayTitle = videoInfo?.hentai_video?.name || slug;
+  const cleanDescription = videoInfo?.hentai_video?.description || 'No classified data available for this transmission.';
 
   const sortedStreams = (Array.isArray(streams) ? streams : []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
 
-  const rawEpisodes = videoInfo?.episodes || [];
+  const rawEpisodes = videoInfo?.hentai_franchise_hentai_videos || [];
   let episodes = Array.isArray(rawEpisodes) ? [...rawEpisodes] : [];
   if (videoInfo && !episodes.find(ep => ep.slug === slug)) {
     episodes.push({
       id: videoId || 0,
       name: displayTitle,
       slug: slug,
-      posterUrl: videoInfo?.poster_url || "",
+      posterUrl: videoInfo?.hentai_video?.poster_url || "",
     });
     episodes.sort((a, b) => a.id - b.id);
   }
@@ -238,7 +238,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div>
                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Views</p>
-                    <p className="text-lg font-black text-white tracking-tighter">{(videoInfo.views || 0).toLocaleString()}</p>
+                    <p className="text-lg font-black text-white tracking-tighter">{(videoInfo?.hentai_video?.views || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Rating</p>
