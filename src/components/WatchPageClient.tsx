@@ -90,8 +90,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 posterUrl: raw.poster_url,
                 coverUrl: raw.cover_url,
                 durationMs: raw.duration_in_ms,
-                tags: raw.tags,
-              }));
+                tags: raw.tags || [],
                 brand: raw.brand || ""
               }));            
             setRelatedVideos(related);
