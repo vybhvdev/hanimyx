@@ -23,6 +23,9 @@ export async function GET(request: Request) {
     const info = await infoRes.json();
 
     let hvId = info.id || 0;
+    let fallbackCoverUrl = "";
+    let fallbackPosterUrl = "";
+    
     if (hvId === 0) {
       try {
         const searchRes = await fetch('https://search.htv-services.com', {
@@ -33,7 +36,11 @@ export async function GET(request: Request) {
         const searchData = await searchRes.json();
         const hits = typeof searchData.hits === 'string' ? JSON.parse(searchData.hits) : searchData.hits;
         const match = (hits || []).find((h: any) => h.slug === slug);
-        if (match) hvId = match.id;
+        if (match) {
+          hvId = match.id;
+          fallbackCoverUrl = match.cover_url || "";
+          fallbackPosterUrl = match.poster_url || "";
+        }
       } catch(e) {}
     }
 
@@ -43,7 +50,8 @@ export async function GET(request: Request) {
         name: info.name || slug,
         description: info.description || "",
         slug: slug,
-        poster_url: "",
+        poster_url: info.posterUrl || fallbackPosterUrl || "",
+        cover_url: info.coverUrl || fallbackCoverUrl || "",
         views: info.views || 0,
         rating: 0,
         likes: 0,

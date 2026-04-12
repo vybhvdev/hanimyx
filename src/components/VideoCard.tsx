@@ -6,6 +6,7 @@ interface VideoCardProps {
     name: string;
     slug: string;
     posterUrl: string;
+    coverUrl?: string;
     tags: string[];
     durationMs: number;
     brand: string;
@@ -15,7 +16,8 @@ interface VideoCardProps {
 export default function VideoCard({ video }: VideoCardProps) {
   const unifiedTags = getUnifiedTags(video.tags).slice(0, 2);
   const durationMin = Math.floor((video.durationMs || 0) / 60000);
-  const proxiedUrl = `/api/image?url=${encodeURIComponent(video.posterUrl)}`;
+  const imageUrl = video.coverUrl || video.posterUrl;
+  const proxiedUrl = imageUrl ? `/api/image?url=${encodeURIComponent(imageUrl)}` : "";
 
   return (
     <a

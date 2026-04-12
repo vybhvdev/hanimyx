@@ -88,11 +88,12 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 name: raw.name,
                 slug: raw.slug,
                 posterUrl: raw.poster_url,
+                coverUrl: raw.cover_url,
                 durationMs: raw.duration_in_ms,
-                tags: raw.tags || [],
-                brand: raw.brand || ""
+                tags: raw.tags,
               }));
-            
+                brand: raw.brand || ""
+              }));            
             setRelatedVideos(related);
             setLoadingRelated(false);
           } catch (err) {
