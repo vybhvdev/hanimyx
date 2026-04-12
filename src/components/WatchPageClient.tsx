@@ -33,7 +33,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         setLoadingInfo(false);
 
         // Fetch streams
-        fetch(`/api/streams?slug=${slug}`)
+        fetch(`/api/streams?hvId=${infoData?.hentai_video?.id}`)
           .then((res) => res.json())
           .then((data) => {
             setStreams(data || []);
@@ -45,7 +45,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
           });
 
         // Fetch related videos based on tags
-        const videoTags = infoData?.tags || [];
+        const videoTags = infoData?.hentai_tags?.map((t:any) => t.text) || [];
         const relatedSearchTags = videoTags.slice(0, 3);
         
         if (relatedSearchTags.length > 0) {
