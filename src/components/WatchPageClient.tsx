@@ -36,7 +36,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         fetch(`/api/streams?hvId=${infoData?.hentai_video?.id}`)
           .then((res) => res.json())
           .then((data) => {
-            setStreams(data || []);
+            setStreams(data?.streams || []);
             setLoadingStreams(false);
           })
           .catch((err) => {
