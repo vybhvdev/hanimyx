@@ -33,7 +33,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         setLoadingInfo(false);
 
         // Fetch streams
-        infoData?.hentai_video?.id ? fetch(`/api/streams?hvId=${infoData.hentai_video.id}`) : Promise.reject(new Error("Stream unavailable for this video"))
+        fetch(`/api/streams?hvId=${infoData?.hentai_video?.id || 0}`)
           .then((res) => res.json())
           .then((data) => {
             setStreams(data?.streams || []);
