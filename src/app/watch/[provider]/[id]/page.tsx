@@ -1,5 +1,7 @@
 import Hanime from "@/lib/providers/hanime";
 import VideoPlayer from "@/components/VideoPlayer";
+import VideoActions from "@/components/VideoActions";
+import VideoCard from "@/components/VideoCard";
 import { getUnifiedTags } from "@/lib/tags";
 
 export default async function WatchPage({
@@ -28,6 +30,11 @@ export default async function WatchPage({
   const videoData = videoInfo?.hentai_video;
   const unifiedTags = videoInfo ? getUnifiedTags(videoInfo.hentai_tags.map((t: any) => t.text)) : [];
 
+  // Fetch related videos by first tag
+  const firstTag = unifiedTags[0] || "";
+  const relatedVideosRaw = firstTag ? await hanime.search(firstTag, 1) : [];
+  const relatedVideos = relatedVideosRaw.filter((v: any) => v.slug !== slug).slice(0, 8);
+
   // Sort streams by quality descending
   const sortedStreams = (streams || []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
@@ -35,10 +42,16 @@ export default async function WatchPage({
   return (
     <div className="bg-[#0d0d0d] min-h-screen pb-20">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-2 space-y-4">
             <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} streams={streams} />
             
+            <VideoActions 
+              slug={slug} 
+              title={videoInfo.hentai_franchise?.name || videoData?.name || 'Unknown Video'} 
+              streamUrl={initialStreamUrl} 
+            />
+
             {videoData && (
               <div className="space-y-6">
                 <div>
@@ -102,14 +115,21 @@ export default async function WatchPage({
                   <div className="w-1 h-3 bg-[#e53333] rounded-full" />
                   Episodes
                 </h2>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {videoInfo.hentai_franchise_hentai_videos.map((ep: any) => (
                     <a key={ep.id} href={`/watch/hanime/${ep.slug}`}
-                      className={`group block p-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${ep.slug === slug ? 'bg-[#e53333] text-white shadow-lg shadow-red-900/20' : 'bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-transparent hover:border-white/10'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="line-clamp-1">{ep.name}</span>
-                        {ep.slug === slug && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                      className={`group flex items-center gap-3 p-2 rounded-xl transition-all border ${ep.slug === slug ? 'bg-[#e53333]/10 border-[#e53333]/30' : 'bg-white/5 hover:bg-white/10 border-transparent hover:border-white/10'}`}>
+                      <div className="relative w-20 aspect-video rounded-lg overflow-hidden flex-none">
+                        <img 
+                          src={`/api/image?url=${encodeURIComponent(ep.poster_url)}`} 
+                          alt={ep.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {ep.slug === slug && <div className="absolute inset-0 bg-[#e53333]/20 flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full animate-ping" /></div>}
                       </div>
+                      <span className={`text-[10px] font-black uppercase tracking-tighter line-clamp-2 ${ep.slug === slug ? 'text-[#e53333]' : 'text-white/40 group-hover:text-white'}`}>
+                        {ep.name}
+                      </span>
                     </a>
                   ))}
                 </div>
@@ -117,7 +137,26 @@ export default async function WatchPage({
             )}
           </div>
         </div>
+
+        {/* Related Videos Section */}
+        {relatedVideos.length > 0 && (
+          <section className="pt-12 border-t border-white/5">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="w-1.5 h-8 bg-[#e53333] rounded-full" />
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-[0.3em] text-white">Related Transmissions</h2>
+                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Based on frequency: {firstTag}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-6">
+              {relatedVideos.map((video: any) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
+}
 }
