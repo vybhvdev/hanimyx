@@ -213,8 +213,9 @@ export default class Hanime {
           }
 
           const episodeMatches = episodesStr.matchAll(/\{id:(\d+),name:"(.*?)"(?:,.*?)*,slug:"(.*?)"(?:,.*?)*,poster_url:"(.*?)"/g);
+          const episodeMatchesArray = Array.from(episodeMatches);
           const episodes = [];
-          for (const match of episodeMatches) {
+          for (const match of episodeMatchesArray) {
             episodes.push({
               id: parseInt(match[1]),
               name: match[2],
