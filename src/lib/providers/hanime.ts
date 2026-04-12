@@ -150,67 +150,73 @@ export default class Hanime {
   }
 
   public async getInfo(slug: string) {
-    let result: any = null;
-    
-    // HaniAPI Fetch
-    const haniController = new AbortController();
-    const haniTimeout = setTimeout(() => haniController.abort(), 5000);
-    try {
-      const haniApiUrl = `https://haniapi-nyt92.vercel.app/getInfo/${slug}`;
-      const haniRes = await fetch(haniApiUrl, { signal: haniController.signal });
-      if (haniRes.ok) {
-        const haniJson = await haniRes.json();
-        if (haniJson && haniJson.id) {
-          result = {
-            hentai_video: {
-              id: haniJson.id,
-              name: haniJson.title,
-              description: haniJson.description,
-              slug: haniJson.slug,
-              poster_url: haniJson.poster,
-              views: parseInt(haniJson.views?.replace(/,/g, '') || "0"),
-              rating: 0,
-              likes: 0,
-              downloads: 0,
-              tags: haniJson.tags || [],
-            },
-            hentai_tags: (haniJson.tags || []).map((t: string) => ({ text: t })),
-            hentai_franchise: {
-              name: haniJson.title,
-              slug: ""
-            },
-            hentai_franchise_hentai_videos: []
-          };
-        }
-      }
-    } catch (e) {
-      console.error("HaniAPI getInfo error or timeout:", e);
-    } finally {
-      clearTimeout(haniTimeout);
-    }
+    const fetchWithTimeout = async () => {
+      let result: any = {
+        hentai_video: { id: 0, slug, name: slug, description: "", views: 0, rating: 0, likes: 0, downloads: 0, tags: [] },
+        hentai_tags: [],
+        hentai_franchise: { name: "", slug: "" },
+        hentai_franchise_hentai_videos: []
+      };
 
-    // HTML Scraping Fetch
-    const htmlController = new AbortController();
-    const htmlTimeout = setTimeout(() => htmlController.abort(), 5000);
-    try {
-      const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-      const response = await fetch(url, { 
+      const haniController = new AbortController();
+      const haniTimeout = setTimeout(() => haniController.abort(), 3000);
+      const haniApiFetch = fetch(`https://haniapi-nyt92.vercel.app/getInfo/${slug}`, { 
+        signal: haniController.signal 
+      }).then(async r => {
+        clearTimeout(haniTimeout);
+        if (!r.ok) return null;
+        const haniJson = await r.json();
+        return haniJson && haniJson.id ? haniJson : null;
+      }).catch(() => {
+        clearTimeout(haniTimeout);
+        return null;
+      });
+
+      const htmlController = new AbortController();
+      const htmlTimeout = setTimeout(() => htmlController.abort(), 4000);
+      const htmlFetch = fetch(`${this.BASE_URL}/videos/hentai/${slug}`, { 
         headers: this.HEADERS,
         signal: htmlController.signal 
+      }).then(async r => {
+        clearTimeout(htmlTimeout);
+        if (!r.ok) return null;
+        return await r.text();
+      }).catch(() => {
+        clearTimeout(htmlTimeout);
+        return null;
       });
-      if (response.ok) {
-        const html = await response.text();
+
+      const [haniData, htmlData] = await Promise.allSettled([haniApiFetch, htmlFetch]);
+
+      if (haniData.status === 'fulfilled' && haniData.value) {
+        const haniJson = haniData.value;
+        result.hentai_video = {
+          id: haniJson.id,
+          name: haniJson.title,
+          description: haniJson.description,
+          slug: haniJson.slug,
+          poster_url: haniJson.poster,
+          views: parseInt(haniJson.views?.replace(/,/g, '') || "0"),
+          rating: 0,
+          likes: 0,
+          downloads: 0,
+          tags: haniJson.tags || [],
+        };
+        result.hentai_tags = (haniJson.tags || []).map((t: string) => ({ text: t }));
+        result.hentai_franchise.name = haniJson.title;
+      }
+
+      if (htmlData.status === 'fulfilled' && htmlData.value) {
+        const html = htmlData.value;
         
-        // Extract Franchise Info
         const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"(?:,.*?)*,slug:"(.*?)"/);
-        if (franchiseMatch && result) {
+        if (franchiseMatch) {
           result.hentai_franchise.name = franchiseMatch[1];
           result.hentai_franchise.slug = franchiseMatch[2];
         }
 
-        // Extract Episode Name
         const nameMatch = html.match(/hentai_video:\{id:\d+,name:"(.*?)"/);
-        if (nameMatch && result) {
+        if (nameMatch) {
           result.hentai_video.name = nameMatch[1];
         }
 
@@ -220,7 +226,6 @@ export default class Hanime {
           let bracketCount = 1;
           let currentIdx = startIdx + episodesPrefix.length;
           let episodesStr = "[";
-          
           while (bracketCount > 0 && currentIdx < html.length) {
             const char = html[currentIdx];
             if (char === '[') bracketCount++;
@@ -232,25 +237,21 @@ export default class Hanime {
           const episodeRegex = /\{id:(\d+),name:"([^"]+)",slug:"([^"]+)"[^}]*poster_url:"([^"]+)"/g;
           const episodeMatchesArray = Array.from(episodesStr.matchAll(episodeRegex));
           let episodes = [];
-          
           const franchiseSlug = franchiseMatch ? franchiseMatch[2] : "";
 
           for (const match of episodeMatchesArray) {
             const epSlug = match[3];
-            // Filter by franchise slug prefix to ensure they belong to the same series
             if (!franchiseSlug || epSlug.startsWith(franchiseSlug)) {
-              const decodedPosterUrl = match[4].replace(/\\u002F/g, "/");
               episodes.push({
                 id: parseInt(match[1]),
                 name: match[2],
                 slug: epSlug,
-                poster_url: decodedPosterUrl,
+                poster_url: match[4].replace(/\\u002F/g, "/"),
               });
             }
           }
 
-          // Ensure current video is in the list
-          if (result && !episodes.find(e => e.id === result.hentai_video.id)) {
+          if (result.hentai_video.id && !episodes.find(e => e.id === result.hentai_video.id)) {
             episodes.push({
               id: result.hentai_video.id,
               name: result.hentai_video.name,
@@ -258,54 +259,29 @@ export default class Hanime {
               poster_url: result.hentai_video.poster_url,
             });
           }
-          
           episodes.sort((a, b) => a.id - b.id);
-          
-          if (result) {
-            result.hentai_franchise_hentai_videos = episodes;
-          } else {
-            result = {
-              hentai_video: { 
-                id: nameMatch ? parseInt(html.match(/id:(\d+)/)?.[1] || "0") : 0, 
-                name: nameMatch ? nameMatch[1] : "",
-                slug 
-              },
-              hentai_franchise: { 
-                name: franchiseMatch ? franchiseMatch[1] : "",
-                slug: franchiseMatch ? franchiseMatch[2] : ""
-              },
-              hentai_franchise_hentai_videos: episodes,
-              hentai_tags: []
-            };
-          }
+          result.hentai_franchise_hentai_videos = episodes;
         }
       }
-    } catch (e) {
-      console.error("Scraping supplement error or timeout:", e);
-    } finally {
-      clearTimeout(htmlTimeout);
-    }
 
-    if (result) return result;
+      return result.hentai_video.id !== 0 ? result : null;
+    };
 
-    const finalController = new AbortController();
-    const finalTimeout = setTimeout(() => finalController.abort(), 5000);
-    try {
-      const url = `${this.BASE_URL}/videos/hentai/${slug}`;
-      const response = await fetch(url, { headers: this.HEADERS, signal: finalController.signal });
-      if (!response.ok) return null;
-      const html = await response.text();
-      const $ = load(html);
-      const script = $('script:contains("window.__NUXT__")').html();
-      if (!script) return null;
-      const jsonStr = script.replace("window.__NUXT__=", "").split(";")[0];
-      const json = new Function(`return ${jsonStr}`)();
-      return json.state.data.video;
-    } catch (e) {
-      return null;
-    } finally {
-      clearTimeout(finalTimeout);
-    }
+    // Overall safety timeout
+    const overallController = new AbortController();
+    const overallTimeout = setTimeout(() => overallController.abort(), 5000);
+    
+    return Promise.race([
+      fetchWithTimeout(),
+      new Promise((resolve) => setTimeout(() => {
+        resolve({
+          hentai_video: { id: 0, slug, name: slug, description: "", views: 0, rating: 0, likes: 0, downloads: 0, tags: [] },
+          hentai_tags: [],
+          hentai_franchise: { name: "", slug: "" },
+          hentai_franchise_hentai_videos: []
+        });
+      }, 4900))
+    ]).finally(() => clearTimeout(overallTimeout));
   }
 
   public async getStreams(identifier: string | number) {
