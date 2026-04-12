@@ -21,8 +21,8 @@ export default async function Home({ searchParams }: { searchParams: { page: str
             </div>
           </div>
           <div className="flex overflow-x-auto gap-4 px-4 md:px-8 no-scrollbar pb-4 scroll-smooth">
-            {recentVideos.slice(0, 10).map((video: any) => (
-              <div key={video.id} className="flex-none w-[280px] md:w-[320px]">
+            {recentVideos.slice(0, 15).map((video: any) => (
+              <div key={video.id} className="flex-none w-[160px] md:w-[200px]">
                 <VideoCard video={video} />
               </div>
             ))}
@@ -36,7 +36,7 @@ export default async function Home({ searchParams }: { searchParams: { page: str
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-6 bg-[#e53333] rounded-full" />
             <h2 className="text-[14px] font-black uppercase tracking-[0.3em] text-white">
-              {page === 0 ? "Discover More" : `Page ${page + 1}`}
+              {page === 0 ? "Discovery" : `Transmission Page ${page + 1}`}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -46,34 +46,34 @@ export default async function Home({ searchParams }: { searchParams: { page: str
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-10 mb-12">
           {recentVideos.map((video: any) => (
             <VideoCard key={video.id} video={video} />
           ))}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-center gap-6 py-8 border-t border-white/5">
+        <div className="flex items-center justify-center gap-6 py-12 border-t border-white/5">
           {page > 0 ? (
             <a 
               href={`/?page=${page - 1}`}
-              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all"
+              className="bg-white/5 border border-white/10 text-white/60 px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#e53333] hover:text-white hover:border-[#e53333] transition-all transform active:scale-95"
             >
               Previous
             </a>
           ) : (
-            <span className="bg-white/5 text-white/20 px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest border border-white/5 cursor-not-allowed">
+            <span className="bg-white/5 text-white/10 px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] border border-white/5 cursor-not-allowed">
               Previous
             </span>
           )}
           
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">
-            PAGE {page + 1}
+          <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] bg-white/5 px-6 py-2.5 rounded-full border border-white/5">
+            SIGNAL {page + 1}
           </span>
 
           <a 
             href={`/?page=${page + 1}`}
-            className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all"
+            className="bg-white/5 border border-white/10 text-white/60 px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#e53333] hover:text-white hover:border-[#e53333] transition-all transform active:scale-95"
           >
             Next
           </a>
@@ -90,8 +90,8 @@ export default async function Home({ searchParams }: { searchParams: { page: str
             </div>
           </div>
           <div className="flex overflow-x-auto gap-4 px-4 md:px-8 no-scrollbar pb-4 scroll-smooth">
-            {trendingVideos.slice(0, 10).map((video: any) => (
-              <div key={video.id} className="flex-none w-[240px] md:w-[280px]">
+            {trendingVideos.slice(0, 15).map((video: any) => (
+              <div key={video.id} className="flex-none w-[140px] md:w-[180px]">
                 <VideoCard video={video} />
               </div>
             ))}
