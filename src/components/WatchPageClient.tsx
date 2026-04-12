@@ -5,7 +5,6 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoActions from "@/components/VideoActions";
 import VideoCard from "@/components/VideoCard";
 import { getUnifiedTags } from "@/lib/tags";
-import { Download } from "lucide-react";
 
 export default function WatchPageClient({ slug }: { slug: string }) {
   const [videoInfo, setVideoInfo] = useState<any>(null);
@@ -17,46 +16,47 @@ export default function WatchPageClient({ slug }: { slug: string }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
+    // 1. Parallel fetch for Info and Streams
+    const fetchInfo = async () => {
       try {
-        // Fetch info
         const infoRes = await fetch(`/api/info?slug=${slug}`, { cache: "no-store" });
-        if (!infoRes.ok) {
-          setError("Video not found");
-          setLoadingInfo(false);
-          setLoadingStreams(false);
-          setLoadingRelated(false);
-          return;
-        }
+        if (!infoRes.ok) throw new Error("Video not found");
         const infoData = await infoRes.json();
         setVideoInfo(infoData);
         setLoadingInfo(false);
+        return infoData;
+      } catch (err: any) {
+        setError(err.message);
+        setLoadingInfo(false);
+        setLoadingRelated(false);
+        return null;
+      }
+    };
 
-        // Fetch streams using hvId if available, else slug
-        
-        const streamParam = `slug=${slug}`;
-        
-        fetch(`/api/streams?${streamParam}`)
-          .then((res) => res.json())
-          .then((data) => {
-            setStreams(data?.streams || data || []);
-            setLoadingStreams(false);
-          })
-          .catch((err) => {
-            console.error(err);
-            setLoadingStreams(false);
-          });
+    const fetchStreams = async () => {
+      try {
+        const res = await fetch(`/api/streams?slug=${slug}`);
+        const data = await res.json();
+        setStreams(data?.streams || data || []);
+        setLoadingStreams(false);
+      } catch (err) {
+        console.error(err);
+        setLoadingStreams(false);
+      }
+    };
 
-        // Fetch related videos based on tags
+    // Start both simultaneously
+    fetchStreams();
+    fetchInfo().then(infoData => {
+      if (infoData) {
+        // 2. Fetch related videos after info is available
         const videoTags = infoData?.hentai_video?.tags || [];
         const relatedSearchTags = videoTags.slice(0, 3);
         
         if (relatedSearchTags.length > 0) {
           fetch("https://search.htv-services.com", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               blacklist: [],
               brands: [],
@@ -91,20 +91,11 @@ export default function WatchPageClient({ slug }: { slug: string }) {
         } else {
           setLoadingRelated(false);
         }
-
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load data");
-        setLoadingInfo(false);
-        setLoadingStreams(false);
-        setLoadingRelated(false);
       }
-    }
-
-    fetchData();
+    });
   }, [slug]);
 
-  if (error) {
+  if (error && !videoInfo) {
     return <div className="p-8 text-center bg-[#0a0a0a] min-h-screen text-white">{error}</div>;
   }
 
