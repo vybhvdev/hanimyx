@@ -55,7 +55,8 @@ export default function WatchPageClient({ slug }: { slug: string }) {
     fetchStreams();
     fetchInfo().then(infoData => {
       if (infoData && isMounted) {
-        const videoTags = infoData?.hentai_video?.tags || infoData?.tags || [];
+        const videoData = infoData.hentai_video;
+        const videoTags = videoData?.tags || infoData.tags || [];
         const relatedSearchTags = Array.isArray(videoTags) ? videoTags.slice(0, 3) : [];
         
         if (relatedSearchTags.length > 0) {
@@ -95,7 +96,42 @@ export default function WatchPageClient({ slug }: { slug: string }) {
               if (isMounted) setLoadingRelated(false);
             });
         } else {
-          setLoadingRelated(false);
+          // Fallback search if no tags are found
+          const fallbackQuery = slug.split('-').slice(0, 2).join(' ');
+          fetch("https://search.htv-services.com", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              blacklist: [],
+              brands: [],
+              order_by: "created_at_unix",
+              page: 0,
+              tags: [],
+              search_text: fallbackQuery,
+              tags_mode: "OR",
+            }),
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (!isMounted) return;
+              const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+              const related = (hits || [])
+                .filter((v: any) => v.slug !== slug)
+                .slice(0, 12)
+                .map((raw: any) => ({
+                  id: raw.id,
+                  name: raw.name,
+                  slug: raw.slug,
+                  posterUrl: raw.poster_url,
+                  durationMs: raw.duration_in_ms,
+                  tags: raw.tags,
+                }));
+              setRelatedVideos(related);
+              setLoadingRelated(false);
+            })
+            .catch(() => {
+              if (isMounted) setLoadingRelated(false);
+            });
         }
       }
     });
@@ -268,7 +304,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
               ))}
             </div>
           ) : (
-            <div className="py-20 text-center bg-[#0a0a0a] rounded-3xl border border-white/5 border-dashed">
+            <div className="py-20 text-center bg-[#0a0a0a] rounded-3xl border border-white/5 border-dashed mx-4 md:mx-0">
               <p className="text-white/10 uppercase tracking-[0.4em] text-[10px] font-black">No matching signals found</p>
             </div>
           )}
