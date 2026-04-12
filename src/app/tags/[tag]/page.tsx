@@ -1,3 +1,4 @@
+import React from 'react';
 import Hanime from "@/lib/providers/hanime";
 import VideoCard from "@/components/VideoCard";
 
@@ -62,7 +63,6 @@ export default async function TagDetailsPage({
           </div>
         </>
       ) : (
-...
         <div className="py-20 text-center border border-white/5 bg-[#0a0a0a] rounded-3xl">
           <p className="text-white/20 text-xs font-black uppercase tracking-[0.2em]">No transmissions found for this category</p>
           {page > 0 && (
