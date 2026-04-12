@@ -34,19 +34,19 @@ export async function GET(request: Request) {
         rating: 0,
         likes: 0,
         downloads: 0,
-        tags: info.tags || [],
+        tags: Array.isArray(info.tags) ? info.tags : [],
       },
-      hentai_tags: (info.tags || []).map((t: string) => ({ text: t })),
+      hentai_tags: Array.isArray(info.tags) ? info.tags.map((t: string) => ({ text: t })) : [],
       hentai_franchise: {
         name: info.franchiseName || "",
         slug: ""
       },
-      hentai_franchise_hentai_videos: (info.episodes || []).map((ep: any) => ({
+      hentai_franchise_hentai_videos: Array.isArray(info.episodes) ? info.episodes.map((ep: any) => ({
         id: ep.id,
         name: ep.name,
         slug: ep.slug,
         poster_url: ep.posterUrl
-      }))
+      })) : []
     };
 
     return NextResponse.json(mappedInfo, {

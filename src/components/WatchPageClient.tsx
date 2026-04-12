@@ -108,13 +108,14 @@ export default function WatchPageClient({ slug }: { slug: string }) {
 
   const videoData = videoInfo?.hentai_video;
   const videoId = videoData?.id;
-  const videoTags = videoData?.tags || videoInfo?.hentai_tags?.map((t: any) => t.text) || [];
+  const videoTags = Array.isArray(videoData?.tags) ? videoData.tags : (Array.isArray(videoInfo?.hentai_tags) ? videoInfo.hentai_tags.map((t: any) => t.text) : []);
   const unifiedTags = videoInfo ? getUnifiedTags(videoTags) : [];
   
-  const sortedStreams = (streams || []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
+  const sortedStreams = (Array.isArray(streams) ? streams : []).sort((a: any, b: any) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
   const initialStreamUrl = sortedStreams.length > 0 ? sortedStreams[0].url : undefined;
 
-  const episodes = videoInfo?.hentai_franchise_hentai_videos || videoInfo?.hentai_franchise?.hentai_videos || [];
+  const rawEpisodes = videoInfo?.hentai_franchise_hentai_videos || videoInfo?.hentai_franchise?.hentai_videos || [];
+  const episodes = Array.isArray(rawEpisodes) ? rawEpisodes : [];
 
   return (
     <div className="bg-[#0d0d0d] min-h-screen pb-20">
