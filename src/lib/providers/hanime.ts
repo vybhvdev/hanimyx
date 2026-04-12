@@ -151,16 +151,17 @@ export default class Hanime {
   }
 
   public async getInfo(slug: string) {
+    let result: any = null;
     try {
       const haniApiUrl = `https://haniapi-nyt92.vercel.app/getInfo/${slug}`;
       const haniRes = await fetch(haniApiUrl);
       if (haniRes.ok) {
         const haniJson = await haniRes.json();
         if (haniJson && haniJson.id) {
-          // Map to the structure expected by the WatchPage
-          return {
+          result = {
             hentai_video: {
               id: haniJson.id,
+              name: haniJson.title,
               description: haniJson.description,
               slug: haniJson.slug,
               poster_url: haniJson.poster,
@@ -168,6 +169,7 @@ export default class Hanime {
               rating: 0,
               likes: 0,
               downloads: 0,
+              tags: haniJson.tags || [],
             },
             hentai_tags: (haniJson.tags || []).map((t: string) => ({ text: t })),
             hentai_franchise: {
@@ -181,6 +183,67 @@ export default class Hanime {
       console.error("HaniAPI getInfo error:", e);
     }
 
+    // Always attempt to supplement with real franchise data from HTML
+    try {
+      const url = `${this.BASE_URL}/videos/hentai/${slug}`;
+      const response = await fetch(url, { headers: this.HEADERS });
+      if (response.ok) {
+        const html = await response.text();
+        
+        // Extract Franchise Name
+        const franchiseMatch = html.match(/hentai_franchise:\{id:\d+,name:"(.*?)"/);
+        if (franchiseMatch && result) {
+          result.hentai_franchise.name = franchiseMatch[1];
+        }
+
+        // Extract Episodes Array
+        const episodesPrefix = "hentai_franchise_hentai_videos:[";
+        const startIdx = html.indexOf(episodesPrefix);
+        if (startIdx !== -1) {
+          let bracketCount = 1;
+          let currentIdx = startIdx + episodesPrefix.length;
+          let episodesStr = "[";
+          
+          while (bracketCount > 0 && currentIdx < html.length) {
+            const char = html[currentIdx];
+            if (char === '[') bracketCount++;
+            else if (char === ']') bracketCount--;
+            episodesStr += char;
+            currentIdx++;
+          }
+
+          const episodeMatches = episodesStr.matchAll(/\{id:(\d+),name:"(.*?)"(?:,.*?)*,slug:"(.*?)"(?:,.*?)*,poster_url:"(.*?)"/g);
+          const episodes = [];
+          for (const match of episodeMatches) {
+            episodes.push({
+              id: parseInt(match[1]),
+              name: match[2],
+              slug: match[3],
+              poster_url: JSON.parse(`"${match[4]}"`), // Decode unicode escaped URL
+            });
+          }
+          
+          if (result) {
+            result.hentai_franchise_hentai_videos = episodes;
+          } else {
+            // Fallback if HaniAPI failed but HTML scraping worked
+            const videoMatch = html.match(/hentai_video:\{(?:.*?)*id:(\d+)(?:.*?)*name:"(.*?)"/);
+            result = {
+              hentai_video: { id: videoMatch ? parseInt(videoMatch[1]) : 0, slug },
+              hentai_franchise: { name: franchiseMatch ? franchiseMatch[1] : "" },
+              hentai_franchise_hentai_videos: episodes,
+              hentai_tags: []
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Scraping supplement error:", e);
+    }
+
+    if (result) return result;
+
+    // Last resort fallback
     const url = `${this.BASE_URL}/videos/hentai/${slug}`;
     const response = await fetch(url, { headers: this.HEADERS });
     if (!response.ok) return null;
