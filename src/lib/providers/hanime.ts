@@ -175,7 +175,7 @@ export default class Hanime {
       const tagsMatch = html.match(/hentai_tags:\[(.*?)\]/);
       const tags: string[] = [];
       if (tagsMatch) {
-        const textMatches = tagsMatch[1].matchAll(/text:"(.*?)"/g);
+        const textMatches = Array.from(tagsMatch[1].matchAll(/text:"(.*?)"/g));
         for (const tm of textMatches) {
           tags.push(tm[1]);
         }
