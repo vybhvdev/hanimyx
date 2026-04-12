@@ -28,16 +28,26 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
   const [streams, setStreams] = useState<Stream[]>(initialStreams || []);
   const [url, setUrl] = useState(initialUrl || "");
-  const [loading, setLoading] = useState(!initialUrl);
+  const [loading, setLoading] = useState(true); // Always start loading until canplay
+  const [isFetching, setIsFetching] = useState(!initialUrl);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentQuality, setCurrentQuality] = useState<string>("");
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     if (!initialUrl && (slug || videoId)) {
@@ -53,7 +63,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
   async function fetchStreams() {
     try {
-      setLoading(true);
+      setIsFetching(true);
       setError(null);
       const param = slug ? `slug=${slug}` : `hvId=${videoId}`;
       const response = await fetch(`/api/streams?${param}`);
@@ -72,7 +82,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsFetching(false);
     }
   }
 
@@ -113,9 +123,20 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   };
 
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
+
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
+      if (video.requestFullscreen) {
+        video.requestFullscreen();
+      } else if ((video as any).webkitRequestFullscreen) {
+        (video as any).webkitRequestFullscreen();
+      }
+      
+      // Force landscape on mobile if possible
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
     } else {
       document.exitFullscreen();
     }
@@ -138,6 +159,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   const changeQuality = (newUrl: string, quality: string) => {
     if (!videoRef.current || newUrl === url) return;
     const time = videoRef.current.currentTime;
+    setLoading(true);
     setUrl(newUrl);
     setCurrentQuality(quality);
     setIsSettingsOpen(false);
@@ -183,6 +205,8 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+        onCanPlay={() => setLoading(false)}
+        onWaiting={() => setLoading(true)}
         onClick={togglePlay}
         playsInline
       />
@@ -249,7 +273,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
                       <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Resolution</span>
                     </div>
                     <div className="py-1">
-                      {streams.sort((a, b) => parseInt(b.height as string) - parseInt(a.height as string)).map((s) => (
+                      {[...streams].sort((a, b) => parseInt(b.height as string) - parseInt(a.height as string)).map((s) => (
                         <button
                           key={s.height}
                           onClick={() => changeQuality(s.url, s.height.toString() + 'p')}
@@ -273,17 +297,17 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
       </div>
 
       {/* States (Loading/Error) */}
-      {(loading || error || !url) && (
+      {(loading || isFetching || error || !url) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/95 z-50">
-          {loading ? (
+          {(loading || isFetching) && !error ? (
             <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-2 border-[#e53333]/20 border-t-[#e53333] rounded-full animate-spin mb-6" />
+              <div className="w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin mb-6" />
               <div className="space-y-1 text-center">
                 <p className="text-[10px] font-black tracking-[0.4em] text-white uppercase">Syncing Uplink</p>
                 <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Establishing encrypted tunnel</p>
               </div>
             </div>
-          ) : (
+          ) : error ? (
             <div className="flex flex-col items-center max-w-xs text-center">
               <AlertCircle size={40} className="text-[#e53333] mb-4 opacity-50" />
               <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.2em] mb-6 leading-relaxed">
@@ -297,7 +321,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
                 Reconnect
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 

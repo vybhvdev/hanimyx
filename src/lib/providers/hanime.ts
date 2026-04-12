@@ -163,6 +163,49 @@ export default class Hanime {
     return [];
   }
 
+  public async searchByTag(tag: string, page = 1) {
+    try {
+      const response = await fetch(this.SEARCH_URL, {
+        method: "POST",
+        headers: { ...this.HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blacklist: [],
+          brands: [],
+          order_by: "created_at_unix",
+          page: page - 1,
+          tags: [tag],
+          search_text: "",
+          tags_mode: "AND",
+        }),
+      });
+
+      if (!response.ok) {
+        // Fallback to mirror search if primary fails
+        const fallbackRes = await fetch("https://cached.freeanimehentai.net/api/v10/search_hvs", {
+          method: "POST",
+          headers: { ...this.HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tags: [tag],
+            page: page - 1,
+            order_by: "created_at_unix",
+            ordering: "desc"
+          })
+        });
+        if (!fallbackRes.ok) return [];
+        const data = await fallbackRes.json();
+        const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+        return hits.map(this.mapToVideo);
+      }
+
+      const data = await response.json();
+      const hits = typeof data.hits === 'string' ? JSON.parse(data.hits) : data.hits;
+      return hits.map(this.mapToVideo);
+    } catch (e) {
+      console.error("HaniAPI Tag Search error:", e);
+      return [];
+    }
+  }
+
   public async search(query: string, page = 1) {
     try {
       const haniApiUrl = `https://haniapi-nyt92.vercel.app/search?q=${encodeURIComponent(query)}`;

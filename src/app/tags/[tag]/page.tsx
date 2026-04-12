@@ -5,7 +5,7 @@ export default async function TagDetailsPage({ params }: { params: { tag: string
   const { tag } = params;
   const decodedTag = decodeURIComponent(tag);
   const provider = new Hanime();
-  const videos = await provider.search(decodedTag, 1);
+  const videos = await provider.searchByTag(decodedTag, 1);
 
   return (
     <div className="container mx-auto px-4 py-12">
