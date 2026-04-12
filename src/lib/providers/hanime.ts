@@ -170,6 +170,7 @@ export default class Hanime {
       const descMatch = html.match(/"description":"(.*?)"/) || html.match(/description:"(.*?)"/);
       const viewsMatch = html.match(/views:(\d+)/);
       const posterMatch = html.match(new RegExp(`slug:"${slug}"(?:,.*?)*,poster_url:"([^"]+)"`));
+      const coverMatch = html.match(new RegExp(`slug:"${slug}"(?:,.*?)*,cover_url:"([^"]+)"`));
 
       // Extract Tags
       const tagsMatch = html.match(/hentai_tags:\[(.*?)\]/);
@@ -191,6 +192,7 @@ export default class Hanime {
           description: descMatch ? descMatch[1].replace(/\\u003Cp\\u003E|\\u003C\\u002Fp\\u003E/g, '') : "",
           slug: slug,
           poster_url: posterMatch ? posterMatch[1].replace(/\\u002F/g, '/') : "",
+          cover_url: coverMatch ? coverMatch[1].replace(/\\u002F/g, '/') : "",
           views: viewsMatch ? parseInt(viewsMatch[1]) : 0,
           rating: 0,
           likes: 0,

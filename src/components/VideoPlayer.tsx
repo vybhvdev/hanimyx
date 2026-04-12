@@ -18,9 +18,10 @@ interface VideoPlayerProps {
   videoId?: number;
   initialUrl?: string;
   streams?: Stream[];
+  coverUrl?: string;
 }
 
-export default function VideoPlayer({ slug, videoId, initialUrl, streams: initialStreams }: VideoPlayerProps) {
+export default function VideoPlayer({ slug, videoId, initialUrl, streams: initialStreams, coverUrl }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -210,10 +211,23 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
         playsInline
       />
 
-      {/* Loading Spinner */}
-      {loading && !error && !isFetching && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-40">
-          <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+      {/* Loading Spinner / Cover Backdrop */}
+      {(loading || isFetching) && !error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black z-40">
+          {coverUrl && (
+            <img 
+              src={`/api/image?url=${encodeURIComponent(coverUrl)}`} 
+              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm"
+              alt="Loading backdrop"
+            />
+          )}
+          <div className="relative flex flex-col items-center">
+            <div className="w-12 h-12 border-2 border-white/10 border-t-[#e53333] rounded-full animate-spin mb-6" />
+            <div className="space-y-1 text-center">
+              <p className="text-[10px] font-black tracking-[0.4em] text-white uppercase">Syncing Uplink</p>
+              <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Establishing encrypted tunnel</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -302,32 +316,22 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
         </div>
       </div>
 
-      {/* Global State Overlays (Fetching/Error) */}
-      {(isFetching || error || !url) && (
+      {/* Global State Overlays (Error) */}
+      {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/95 z-[60]">
-          {isFetching && !error ? (
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 border-2 border-white/10 border-t-[#e53333] rounded-full animate-spin mb-6" />
-              <div className="space-y-1 text-center">
-                <p className="text-[10px] font-black tracking-[0.4em] text-white uppercase">Syncing Uplink</p>
-                <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Establishing encrypted tunnel</p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center max-w-xs text-center">
-              <AlertCircle size={40} className="text-[#e53333] mb-4 opacity-50" />
-              <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.2em] mb-6 leading-relaxed">
-                {error || "Carrier signal lost. Re-authentication required."}
-              </p>
-              <button 
-                onClick={fetchStreams}
-                className="group flex items-center gap-3 px-8 py-3 bg-[#e53333] hover:bg-[#ff4444] rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] transition-all transform hover:scale-105 shadow-lg shadow-red-900/20"
-              >
-                <RotateCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-                Reconnect
-              </button>
-            </div>
-          ) : null}
+          <div className="flex flex-col items-center max-w-xs text-center">
+            <AlertCircle size={40} className="text-[#e53333] mb-4 opacity-50" />
+            <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.2em] mb-6 leading-relaxed">
+              {error || "Carrier signal lost. Re-authentication required."}
+            </p>
+            <button 
+              onClick={fetchStreams}
+              className="group flex items-center gap-3 px-8 py-3 bg-[#e53333] hover:bg-[#ff4444] rounded-full text-[10px] font-black text-white uppercase tracking-[0.3em] transition-all transform hover:scale-105 shadow-lg shadow-red-900/20"
+            >
+              <RotateCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+              Reconnect
+            </button>
+          </div>
         </div>
       )}
 

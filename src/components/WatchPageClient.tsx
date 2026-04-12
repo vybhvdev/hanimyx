@@ -150,7 +150,13 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                 <span className="text-white/20 uppercase tracking-[0.3em] text-[10px] font-black">Syncing Stream...</span>
               </div>
             ) : (
-              <VideoPlayer slug={slug} videoId={videoId} initialUrl={initialStreamUrl} streams={streams} />
+              <VideoPlayer 
+                slug={slug} 
+                videoId={videoId} 
+                initialUrl={initialStreamUrl} 
+                streams={streams} 
+                coverUrl={videoData?.cover_url}
+              />
             )}
             
             <div className="flex flex-wrap items-center gap-3 py-4 border-b border-white/5 mb-6">
