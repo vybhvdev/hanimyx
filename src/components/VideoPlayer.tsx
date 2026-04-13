@@ -100,7 +100,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent shortcut interference when typing in search
       if (document.activeElement?.tagName === 'INPUT') return;
 
       switch (e.key.toLowerCase()) {
@@ -139,7 +138,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     };
   }, [togglePlay, toggleMute, toggleFullscreen, skip]);
 
-  // Update video volume when volume state changes
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.volume = volume;
@@ -215,12 +213,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     setIsSpeedOpen(false);
   };
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume;
-    }
-  }, [volume]);
-
   // Sync playback speed
   useEffect(() => {
     if (videoRef.current) {
@@ -238,7 +230,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     setShowControls(true);
     clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying && !isSettingsOpen) setShowControls(false);
+      if (isPlaying && !isSettingsOpen && !isSpeedOpen) setShowControls(false);
     }, 3000);
   };
 
@@ -365,7 +357,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
       )}
 
       {/* Custom Controls Overlay */}
-      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-4 md:p-6 transition-all duration-500 z-50 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3 md:p-6 transition-all duration-500 z-50 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         
         {/* Progress Bar */}
         <div className="relative w-full group/progress mb-4 cursor-pointer">
@@ -384,23 +376,23 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 md:gap-6">
-            <div className="flex items-center gap-4">
-              <button onClick={() => skip(-10)} className="text-white/60 hover:text-white transition-colors">
-                <SkipBack size={20} fill="currentColor" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-6 min-w-0">
+            <div className="flex items-center gap-1 md:gap-4 shrink-0">
+              <button onClick={() => skip(-10)} className="text-white/60 hover:text-white transition-colors p-1">
+                <SkipBack size={20} className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
               </button>
               
-              <button onClick={togglePlay} className="text-white hover:text-[#e53333] transition-colors transform hover:scale-110 active:scale-90">
-                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+              <button onClick={togglePlay} className="text-white hover:text-[#e53333] transition-colors transform hover:scale-110 active:scale-90 p-1">
+                {isPlaying ? <Pause className="w-6 h-6 md:w-7 md:h-7" fill="currentColor" /> : <Play className="w-6 h-6 md:w-7 md:h-7" fill="currentColor" />}
               </button>
 
-              <button onClick={() => skip(10)} className="text-white/60 hover:text-white transition-colors">
-                <SkipForward size={20} fill="currentColor" />
+              <button onClick={() => skip(10)} className="text-white/60 hover:text-white transition-colors p-1">
+                <SkipForward size={20} className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
               </button>
             </div>
 
-            <div className="flex items-center gap-3 group/volume">
+            <div className="hidden sm:flex items-center gap-3 group/volume shrink-0">
               <button onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
                 {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
@@ -411,27 +403,27 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
               />
             </div>
 
-            <div className="text-[10px] font-black tracking-[0.2em] text-white/40 uppercase">
+            <div className="text-[9px] md:text-[10px] font-black tracking-[0.1em] md:tracking-[0.2em] text-white/40 uppercase truncate">
               <span className="text-white/80">{formatTime(currentTime)}</span>
-              <span className="mx-2">/</span>
+              <span className="mx-1 md:mx-2">/</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 relative">
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
             {/* Speed Control */}
             <div className="relative">
               <button 
                 onClick={() => { setIsSpeedOpen(!isSpeedOpen); setIsSettingsOpen(false); }}
-                className="flex items-center gap-1.5 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white/70 transition-all"
+                className="flex items-center gap-1 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-tighter md:tracking-widest text-white/70 transition-all"
               >
-                <Gauge size={12} className={isSpeedOpen ? "text-[#e53333]" : ""} />
+                <Gauge size={12} className={`w-3 h-3 md:w-4 md:h-4 ${isSpeedOpen ? "text-[#e53333]" : ""}`} />
                 {playbackSpeed}x
               </button>
 
               {isSpeedOpen && (
-                <div className="absolute bottom-full right-0 mb-4 w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/5">
-                  <div className="p-3 border-b border-white/5 bg-white/5">
+                <div className="absolute bottom-full right-0 mb-4 w-28 md:w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/5">
+                  <div className="p-2 md:p-3 border-b border-white/5 bg-white/5">
                     <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Speed</span>
                   </div>
                   <div className="py-1">
@@ -439,7 +431,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
                       <button
                         key={s}
                         onClick={() => changeSpeed(s)}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 text-[9px] font-black uppercase transition-colors ${playbackSpeed === s ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+                        className={`w-full flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5 text-[8px] md:text-[9px] font-black uppercase transition-colors ${playbackSpeed === s ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                       >
                         {s}x
                         {playbackSpeed === s && <Check size={10} strokeWidth={4} />}
@@ -451,19 +443,19 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
             </div>
 
             {/* Quality Pill */}
-            {streams.length > 1 && (
+            {streams.length > 0 && (
               <div className="relative">
                 <button 
                   onClick={() => { setIsSettingsOpen(!isSettingsOpen); setIsSpeedOpen(false); }}
-                  className="flex items-center gap-1.5 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white/70 transition-all"
+                  className="flex items-center gap-1 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-tighter md:tracking-widest text-white/70 transition-all"
                 >
-                  <Settings size={12} className={isSettingsOpen ? "text-[#e53333] animate-spin-slow" : ""} />
-                  {currentQuality}
+                  <Settings size={12} className={`w-3 h-3 md:w-4 md:h-4 ${isSettingsOpen ? "text-[#e53333] animate-spin-slow" : ""}`} />
+                  {currentQuality || "Auto"}
                 </button>
 
                 {isSettingsOpen && (
-                  <div className="absolute bottom-full right-0 mb-4 w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/5">
-                    <div className="p-3 border-b border-white/5 bg-white/5">
+                  <div className="absolute bottom-full right-0 mb-4 w-28 md:w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/5">
+                    <div className="p-2 md:p-3 border-b border-white/5 bg-white/5">
                       <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Resolution</span>
                     </div>
                     <div className="py-1">
@@ -471,7 +463,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
                         <button
                           key={s.height}
                           onClick={() => changeQuality(s.url, s.height.toString() + 'p')}
-                          className={`w-full flex items-center justify-between px-4 py-2.5 text-[9px] font-black uppercase transition-colors ${currentQuality === s.height.toString() + 'p' ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+                          className={`w-full flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5 text-[8px] md:text-[9px] font-black uppercase transition-colors ${currentQuality === s.height.toString() + 'p' ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                         >
                           {s.height}p
                           {currentQuality === s.height.toString() + 'p' && <Check size={10} strokeWidth={4} />}
@@ -483,8 +475,8 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
               </div>
             )}
 
-            <button onClick={toggleFullscreen} className={`text-white/80 hover:text-white transition-colors transform hover:scale-110 ${isFullscreen ? 'text-[#e53333]' : ''}`}>
-              <Maximize size={20} />
+            <button onClick={toggleFullscreen} className={`text-white/80 hover:text-white transition-colors transform hover:scale-110 p-1 shrink-0 ${isFullscreen ? 'text-[#e53333]' : ''}`}>
+              <Maximize size={20} className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
         </div>
