@@ -51,6 +51,12 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   }, []);
 
   useEffect(() => {
+    if (initialUrl) {
+      setUrl(initialUrl);
+    }
+  }, [initialUrl]);
+
+  useEffect(() => {
     if (!initialUrl && (slug || videoId)) {
       fetchStreams();
     } else if (initialStreams) {
@@ -87,12 +93,34 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     }
   }
 
-  const togglePlay = useCallback(() => {
+  const togglePlay = useCallback(async () => {
     if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
+      try {
+        if (videoRef.current.paused) {
+          await videoRef.current.play();
+        } else {
+          videoRef.current.pause();
+        }
+      } catch (err) {
+        console.error("Play/Pause error:", err);
+      }
+    }
+  }, []);
+
+  const playVideo = useCallback(async () => {
+    if (videoRef.current) {
+      try {
+        await videoRef.current.play();
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          videoRef.current.muted = true;
+          setIsMuted(true);
+          try {
+            await videoRef.current.play();
+          } catch (e) {
+            console.error("Muted autoplay also failed:", e);
+          }
+        }
       }
     }
   }, []);
@@ -167,7 +195,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     const onLoaded = () => {
       if (videoRef.current) {
         videoRef.current.currentTime = time;
-        if (isPlaying) videoRef.current.play();
+        if (isPlaying) playVideo();
         videoRef.current.removeEventListener('loadedmetadata', onLoaded);
       }
     };
@@ -179,17 +207,29 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     const video = videoRef.current;
 
     if (Hls.isSupported()) {
-      if (hlsRef.current) hlsRef.current.destroy();
-      const hls = new Hls({ xhrSetup: (xhr) => { xhr.withCredentials = false; } });
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      const hls = new Hls({ 
+        xhrSetup: (xhr) => { xhr.withCredentials = false; },
+        autoStartLoad: true,
+        startLevel: -1,
+      });
       hlsRef.current = hls;
       hls.loadSource(url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { if (isPlaying) video.play(); });
-      return () => hls.destroy();
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+        if (isPlaying) playVideo(); 
+      });
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
+      if (isPlaying) playVideo();
     }
-  }, [url]);
+  }, [url, playVideo]); // Added playVideo to deps
 
   return (
     <div 
