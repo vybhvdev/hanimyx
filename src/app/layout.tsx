@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Hanimyx",
   description: "Minimalist Hentai Streaming",
+  verification: {
+    google: "pLfXVZxvjfiWq1XbUzRT-Leq2__OY0Bxjl-UITvYX_s",
+  },
 };
 
 export default function RootLayout({
