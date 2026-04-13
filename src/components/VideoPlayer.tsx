@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, 
-  Settings, Check, RotateCcw, AlertCircle
+  Settings, Check, RotateCcw, AlertCircle,
+  SkipBack, SkipForward, Gauge
 } from 'lucide-react';
 
 interface Stream {
@@ -40,15 +41,63 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSpeedOpen, setIsSpeedOpen] = useState(false);
   const [currentQuality, setCurrentQuality] = useState<string>("");
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent shortcut interference when typing in search
+      if (document.activeElement?.tagName === 'INPUT') return;
+
+      switch (e.key.toLowerCase()) {
+        case ' ':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'm':
+          toggleMute();
+          break;
+        case 'f':
+          toggleFullscreen();
+          break;
+        case 'arrowleft':
+          skip(-5);
+          break;
+        case 'arrowright':
+          skip(5);
+          break;
+        case 'arrowup':
+          e.preventDefault();
+          setVolume(prev => Math.min(1, prev + 0.1));
+          break;
+        case 'arrowdown':
+          e.preventDefault();
+          setVolume(prev => Math.max(0, prev - 0.1));
+          break;
+      }
+    };
+
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [togglePlay]);
+
+  // Update video volume when volume state changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume;
+    }
+  }, [volume]);
 
   useEffect(() => {
     if (initialUrl) {
@@ -132,6 +181,20 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     if (videoRef.current) {
       videoRef.current.currentTime = val;
     }
+  };
+
+  const skip = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime += seconds;
+    }
+  };
+
+  const changeSpeed = (speed: number) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+    setIsSpeedOpen(false);
   };
 
   const toggleFullscreen = () => {
@@ -311,9 +374,19 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 md:gap-6">
-            <button onClick={togglePlay} className="text-white hover:text-[#e53333] transition-colors transform hover:scale-110 active:scale-90">
-              {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-            </button>
+            <div className="flex items-center gap-4">
+              <button onClick={() => skip(-10)} className="text-white/60 hover:text-white transition-colors">
+                <SkipBack size={20} fill="currentColor" />
+              </button>
+              
+              <button onClick={togglePlay} className="text-white hover:text-[#e53333] transition-colors transform hover:scale-110 active:scale-90">
+                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+              </button>
+
+              <button onClick={() => skip(10)} className="text-white/60 hover:text-white transition-colors">
+                <SkipForward size={20} fill="currentColor" />
+              </button>
+            </div>
 
             <div className="flex items-center gap-3 group/volume">
               <button onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
@@ -334,11 +407,42 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
           </div>
 
           <div className="flex items-center gap-4 relative">
+            {/* Speed Control */}
+            <div className="relative">
+              <button 
+                onClick={() => { setIsSpeedOpen(!isSpeedOpen); setIsSettingsOpen(false); }}
+                className="flex items-center gap-1.5 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white/70 transition-all"
+              >
+                <Gauge size={12} className={isSpeedOpen ? "text-[#e53333]" : ""} />
+                {playbackSpeed}x
+              </button>
+
+              {isSpeedOpen && (
+                <div className="absolute bottom-full right-0 mb-4 w-32 bg-[#0d0d0d]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/5">
+                  <div className="p-3 border-b border-white/5 bg-white/5">
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Speed</span>
+                  </div>
+                  <div className="py-1">
+                    {speeds.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => changeSpeed(s)}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 text-[9px] font-black uppercase transition-colors ${playbackSpeed === s ? 'text-[#e53333] bg-[#e53333]/5' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
+                      >
+                        {s}x
+                        {playbackSpeed === s && <Check size={10} strokeWidth={4} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Quality Pill */}
             {streams.length > 1 && (
               <div className="relative">
                 <button 
-                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  onClick={() => { setIsSettingsOpen(!isSettingsOpen); setIsSpeedOpen(false); }}
                   className="flex items-center gap-1.5 bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#e53333]/50 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-white/70 transition-all"
                 >
                   <Settings size={12} className={isSettingsOpen ? "text-[#e53333] animate-spin-slow" : ""} />
