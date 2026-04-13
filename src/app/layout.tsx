@@ -6,15 +6,16 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Hanimyx",
-  description: "Minimalist Hentai Streaming",
+  title: "Hanimyx - Hanime & Free Uncensored Hentai Streaming",
+  description: "Watch high-quality, free, and uncensored hentai anime online. Experience the best alternative to Hanime and Hentai Haven with no ads and no clutter.",
+  keywords: ["hanime", "hentai", "free hentai", "uncensored hentai", "hentai streaming", "anime hentai", "hentai haven", "hanime tv", "watch hentai"],
   verification: {
     google: "pLfXVZxvjfiWq1XbUzRT-Leq2__OY0Bxjl-UITvYX_s",
   },
   manifest: "/manifest.json",
   openGraph: {
-    title: "Hanimyx - Free Hentai Streaming",
-    description: "Watch hentai online free in HD. No ads, no clutter.",
+    title: "Hanimyx - Hanime & Free Uncensored Hentai Streaming",
+    description: "Watch high-quality, free, and uncensored hentai anime online. Experience the best alternative to Hanime and Hentai Haven with no ads and no clutter.",
     url: "https://hanimyx.vercel.app",
     siteName: "Hanimyx",
     type: "website",
