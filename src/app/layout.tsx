@@ -19,8 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <head><meta name="google-site-verification" content="pLfXVZxvjfiWq1XbUzRT-Leq2__OY0Bxjl-UITvYX_s" /></head>
-<html lang="en" className="dark">
+    <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col bg-[#0d0d0d] text-[#ededed]`}>
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-xl">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
