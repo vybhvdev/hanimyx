@@ -306,8 +306,15 @@ export default class Hanime {
           let finalUrl = st.url;
           if (finalUrl.includes("streamable.cloud") && st.extra2) {
             finalUrl = `https://weeb.hanime.tv${st.extra2}`;
+          } else if (finalUrl.includes("streamable.cloud")) {
+            // Reconstruct Shiva manifest path if it's a legacy stream
+            finalUrl = `https://weeb.hanime.tv/weeb-api-cache/api/v8/m3u8s/${st.id}.m3u8`;
           }
-          return { ...st, url: finalUrl, height: st.height || "720" };
+          
+          // Wrap in worker proxy for CORS and rewriting
+          const proxiedUrl = `https://hanime-worker.vaibhavyadav9988777.workers.dev/m3u8?url=${encodeURIComponent(finalUrl)}`;
+          
+          return { ...st, url: proxiedUrl, height: st.height || "720" };
         });
     } catch (e) {
       return [];
