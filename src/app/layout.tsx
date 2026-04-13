@@ -11,6 +11,17 @@ export const metadata: Metadata = {
   verification: {
     google: "pLfXVZxvjfiWq1XbUzRT-Leq2__OY0Bxjl-UITvYX_s",
   },
+  manifest: "/manifest.json",
+  openGraph: {
+    title: "Hanimyx - Free Hentai Streaming",
+    description: "Watch hentai online free in HD. No ads, no clutter.",
+    url: "https://hanimyx.vercel.app",
+    siteName: "Hanimyx",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({

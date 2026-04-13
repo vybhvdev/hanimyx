@@ -2,6 +2,7 @@ import Hanime from "@/lib/providers/hanime";
 import VideoCard from "@/components/VideoCard";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function PopularPage({ searchParams }: { searchParams: { page: string } }) {
   const page = parseInt(searchParams.page || "0");
