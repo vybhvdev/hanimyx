@@ -1,7 +1,6 @@
 export const maxDuration = 30;
 
 import WatchPageClient from "@/components/WatchPageClient";
-import Hanime from "@/lib/providers/hanime";
 import type { Metadata } from "next";
 
 export async function generateMetadata({ params }: { params: { provider: string; id: string } }): Promise<Metadata> {
@@ -9,31 +8,50 @@ export async function generateMetadata({ params }: { params: { provider: string;
   if (provider !== "hanime") {
     return { title: "Not Found" };
   }
-  const hanime = new Hanime();
-  const info = await hanime.getInfo(slug);
-  
-  if (!info || !info.hentai_video) {
-    return { title: "Video Not Found" };
-  }
-  
-  const title = `${info.hentai_video.name} - Hanimyx`;
-  const description = info.hentai_video.description || "Watch high quality hentai on Hanimyx";
-  const image = info.hentai_video.poster_url || info.hentai_video.cover_url;
 
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: image ? [image] : [],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: image ? [image] : [],
+  try {
+    const searchRes = await fetch('https://search.htv-services.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ search_text: slug.replace(/-/g, " "), tags: [], tags_mode: 'AND', brands: [], blacklist: [], order_by: 'created_at_unix', page: 0 }),
+      next: { revalidate: 3600 }
+    });
+    
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      const hits = typeof searchData.hits === 'string' ? JSON.parse(searchData.hits) : searchData.hits;
+      const match = (hits || []).find((h: any) => h.slug === slug);
+      
+      if (match) {
+        const title = `${match.name} - Hanimyx`;
+        const description = match.description || "Watch high quality hentai on Hanimyx";
+        const image = match.poster_url || match.cover_url;
+
+        return {
+          title,
+          description,
+          openGraph: {
+            title,
+            description,
+            images: image ? [image] : [],
+          },
+          twitter: {
+            card: "summary_large_image",
+            title,
+            description,
+            images: image ? [image] : [],
+          }
+        };
+      }
     }
+  } catch (error) {
+    console.error("generateMetadata error:", error);
+  }
+
+  const fallbackTitle = `${slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} - Hanimyx`;
+  return {
+    title: fallbackTitle,
+    description: "Watch high quality hentai on Hanimyx"
   };
 }
 
