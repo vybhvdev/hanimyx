@@ -189,20 +189,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     }
   }
 
-  const togglePlay = useCallback(async () => {
-    if (videoRef.current) {
-      try {
-        if (videoRef.current.paused) {
-          await videoRef.current.play();
-        } else {
-          videoRef.current.pause();
-        }
-      } catch (err) {
-        console.error("Play/Pause error:", err);
-      }
-    }
-  }, []);
-
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
