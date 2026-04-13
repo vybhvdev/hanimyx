@@ -47,6 +47,53 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
   const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+  const togglePlay = useCallback(async () => {
+    if (videoRef.current) {
+      try {
+        if (videoRef.current.paused) {
+          await videoRef.current.play();
+        } else {
+          videoRef.current.pause();
+        }
+      } catch (err) {
+        console.error("Play/Pause error:", err);
+      }
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    if (videoRef.current) {
+      const newState = !isMuted;
+      setIsMuted(newState);
+      videoRef.current.muted = newState;
+    }
+  }, [isMuted]);
+
+  const skip = useCallback((seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime += seconds;
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+      }
+      
+      if (screen.orientation && (screen.orientation as any).lock) {
+        (screen.orientation as any).lock("landscape").catch(() => {});
+      }
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -90,7 +137,7 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [togglePlay]);
+  }, [togglePlay, toggleMute, toggleFullscreen, skip]);
 
   // Update video volume when volume state changes
   useEffect(() => {
@@ -156,15 +203,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     }
   }, []);
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-
-      const newState = !isMuted;
-      setIsMuted(newState);
-      videoRef.current.muted = newState;
-    }
-  };
-
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
@@ -183,12 +221,6 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     }
   };
 
-  const skip = (seconds: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime += seconds;
-    }
-  };
-
   const changeSpeed = (speed: number) => {
     setPlaybackSpeed(speed);
     if (videoRef.current) {
@@ -197,24 +229,18 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     setIsSpeedOpen(false);
   };
 
-  const toggleFullscreen = () => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (!document.fullscreenElement) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if ((container as any).webkitRequestFullscreen) {
-        (container as any).webkitRequestFullscreen();
-      }
-      
-      if (screen.orientation && (screen.orientation as any).lock) {
-        (screen.orientation as any).lock("landscape").catch(() => {});
-      }
-    } else {
-      document.exitFullscreen();
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume;
     }
-  };
+  }, [volume]);
+
+  // Sync playback speed
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed, loading]);
 
   const formatTime = (time: number) => {
     const min = Math.floor(time / 60);
