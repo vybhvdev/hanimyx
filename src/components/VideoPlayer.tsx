@@ -107,26 +107,9 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
     }
   }, []);
 
-  const playVideo = useCallback(async () => {
-    if (videoRef.current) {
-      try {
-        await videoRef.current.play();
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'NotAllowedError') {
-          videoRef.current.muted = true;
-          setIsMuted(true);
-          try {
-            await videoRef.current.play();
-          } catch (e) {
-            console.error("Muted autoplay also failed:", e);
-          }
-        }
-      }
-    }
-  }, []);
-
   const toggleMute = () => {
     if (videoRef.current) {
+
       const newState = !isMuted;
       setIsMuted(newState);
       videoRef.current.muted = newState;
@@ -186,50 +169,85 @@ export default function VideoPlayer({ slug, videoId, initialUrl, streams: initia
 
   const changeQuality = (newUrl: string, quality: string) => {
     if (!videoRef.current || newUrl === url) return;
-    const time = videoRef.current.currentTime;
-    setLoading(true);
     setUrl(newUrl);
     setCurrentQuality(quality);
     setIsSettingsOpen(false);
-    
-    const onLoaded = () => {
-      if (videoRef.current) {
-        videoRef.current.currentTime = time;
-        if (isPlaying) playVideo();
-        videoRef.current.removeEventListener('loadedmetadata', onLoaded);
-      }
-    };
-    videoRef.current.addEventListener('loadedmetadata', onLoaded);
   };
 
   useEffect(() => {
     if (!url || !videoRef.current) return;
+    
     const video = videoRef.current;
+    let hls: Hls | null = null;
+    let isDestroyed = false;
+
+    setLoading(true);
+
+    const startPlayback = async () => {
+      if (isDestroyed || !video) return;
+      try {
+        setLoading(false);
+        await video.play();
+        setIsPlaying(true);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          video.muted = true;
+          setIsMuted(true);
+          try {
+            await video.play();
+            setIsPlaying(true);
+          } catch (e) {
+            console.error("Muted autoplay failed:", e);
+          }
+        }
+      }
+    };
 
     if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
-      const hls = new Hls({ 
+      hls = new Hls({ 
         xhrSetup: (xhr) => { xhr.withCredentials = false; },
         autoStartLoad: true,
-        startLevel: -1,
       });
       hlsRef.current = hls;
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (!isDestroyed) startPlayback();
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls?.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls?.recoverMediaError();
+              break;
+            default:
+              setError("Fatal playback error");
+              hls?.destroy();
+              break;
+          }
+        }
+      });
+
       hls.loadSource(url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-        if (isPlaying) playVideo(); 
-      });
-      return () => {
-        hls.destroy();
-        hlsRef.current = null;
-      };
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
-      if (isPlaying) playVideo();
+      video.oncanplay = () => {
+        if (!isDestroyed) startPlayback();
+      };
     }
-  }, [url, playVideo]); // Added playVideo to deps
+
+    return () => {
+      isDestroyed = true;
+      if (hls) {
+        hls.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [url]);
 
   return (
     <div 
