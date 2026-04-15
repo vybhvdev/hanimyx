@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
-  if (!url || (!url.startsWith('https://hanime-cdn.com') && !url.startsWith('https://i.pururin.me') && !url.startsWith('https://pururin.to'))) {
+  
+  if (!url || url.length > 255 || !url.startsWith('https://hanime-cdn.com')) {
     return new NextResponse('Invalid URL', { status: 400 });
   }
 
-  const referer = url.includes('pururin') ? 'https://pururin.to/' : 'https://hanime.tv/';
+  const referer = 'https://hanime.tv/';
 
   const response = await fetch(url, {
     headers: {

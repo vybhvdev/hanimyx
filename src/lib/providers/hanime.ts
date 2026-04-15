@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import crypto from "crypto";
 
-export const HANIME_SECRET = "865473ac43246402343d6433337a4330";
+export const HANIME_SECRET = process.env.HANIME_SECRET || "";
 
 export default class Hanime {
   private readonly BASE_URL = "https://hanime.tv";

@@ -1,8 +1,8 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 import VideoCard from "@/components/VideoCard";
 
 export default async function TrendingPage() {
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const trendingVideos = await provider.getTrending(1);
 
   return (

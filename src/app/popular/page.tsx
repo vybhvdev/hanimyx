@@ -1,4 +1,4 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 import VideoCard from "@/components/VideoCard";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ export const revalidate = 3600;
 
 export default async function PopularPage({ searchParams }: { searchParams: { page: string } }) {
   const page = parseInt(searchParams.page || "0");
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const popularVideos = await provider.getPopular(page + 1);
 
   return (

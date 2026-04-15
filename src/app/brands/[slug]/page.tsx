@@ -1,9 +1,9 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 import VideoCard from "@/components/VideoCard";
 
 export default async function BrandDetailsPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const brands = await provider.getBrands();
   const brand = brands.find((b: any) => b.slug === slug);
   const brandTitle = brand ? brand.title : slug;

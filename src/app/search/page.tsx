@@ -1,9 +1,9 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 import VideoCard from "@/components/VideoCard";
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
   const query = searchParams.q || "";
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const videos = query ? await provider.search(query, 1) : [];
 
   return (

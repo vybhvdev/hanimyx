@@ -1,5 +1,5 @@
 import React from 'react';
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 import VideoCard from "@/components/VideoCard";
 
 export default async function TagDetailsPage({ 
@@ -12,7 +12,7 @@ export default async function TagDetailsPage({
   const { tag } = params;
   const page = parseInt(searchParams.page || "0");
   const decodedTag = decodeURIComponent(tag);
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const videos = await provider.searchByTag(decodedTag, page + 1);
 
   return (

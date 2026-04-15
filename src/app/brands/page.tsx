@@ -1,7 +1,7 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 
 export default async function BrandsPage() {
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const brands = await provider.getBrands();
 
   return (

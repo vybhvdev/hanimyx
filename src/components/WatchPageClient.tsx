@@ -211,7 +211,7 @@ export default function WatchPageClient({ slug }: { slug: string }) {
                       {episodes.map((ep: any) => (
                         <a 
                           key={ep.id} 
-                          href={`/watch/hanime/${ep.slug}`}
+                          href={`/watch/hentaicity/${ep.slug}`}
                           className={`flex-none w-48 group bg-[#0a0a0a] border border-white/5 hover:border-white/10 rounded-2xl transition-all overflow-hidden ${ep.slug === slug ? 'border-[#e53333]/30 bg-[#e53333]/5' : ''}`}
                         >
                           <div className="relative aspect-video">

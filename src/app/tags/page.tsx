@@ -1,4 +1,4 @@
-import Hanime from "@/lib/providers/hanime";
+import HentaiCity from "@/lib/providers/hentaicity";
 
 const tagCovers: Record<string, string> = {
   "3d": "https://hanime-cdn.com/images/posters/gorimaccho-to-bloomers-lesson-3d.jpg",
@@ -46,7 +46,7 @@ const tagCovers: Record<string, string> = {
 };
 
 export default async function TagsPage() {
-  const provider = new Hanime();
+  const provider = new HentaiCity();
   const tags = await provider.getTags();
 
   return (
