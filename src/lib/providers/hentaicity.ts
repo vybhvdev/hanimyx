@@ -1,9 +1,32 @@
 import { load } from "cheerio";
 import dns from "node:dns";
+import https from "node:https";
 
 try {
   dns.setDefaultResultOrder("ipv4first");
 } catch (e) {}
+
+// Custom fetch to bypass Next.js/undici IPv6 timeout bug in Termux
+function fetchHtml(url: string, headers: Record<string, string>): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers }, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        // Handle redirect
+        let redirectUrl = res.headers.location;
+        if (!redirectUrl.startsWith('http')) {
+          redirectUrl = new URL(redirectUrl, url).href;
+        }
+        return fetchHtml(redirectUrl, headers).then(resolve).catch(reject);
+      }
+      
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => { resolve(data); });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
 
 export default class HentaiCity {
   private readonly BASE_URL = "https://www.hentaicity.com";
@@ -42,8 +65,10 @@ export default class HentaiCity {
 
   private async scrapeList(url: string) {
     try {
-      const res = await fetch(url, { headers: this.HEADERS });
-      const html = await res.text();
+      console.log(`[HentaiCity Scraper] Requesting: ${url}`);
+      const html = await fetchHtml(url, this.HEADERS);
+      console.log(`[HentaiCity Scraper] Received HTML length: ${html.length}`);
+      
       const $ = load(html);
       const videos: any[] = [];
       
@@ -79,9 +104,11 @@ export default class HentaiCity {
           tags: []
         });
       });
+      
+      console.log(`[HentaiCity Scraper] Successfully parsed ${videos.length} videos from the list`);
       return videos;
     } catch (e) {
-      console.error("HentaiCity scrapeList error:", e);
+      console.error("[HentaiCity Scraper] scrapeList error:", e);
       return [];
     }
   }
@@ -89,11 +116,10 @@ export default class HentaiCity {
   public async getInfo(slug: string) {
     try {
       const fetchSlug = slug.endsWith('.html') ? slug : `${slug}.html`;
-      const res = await fetch(`${this.BASE_URL}/video/${fetchSlug}`, { headers: this.HEADERS });
-      if (!res.ok) return null;
-      const html = await res.text();
-      const $ = load(html);
+      console.log(`[HentaiCity Info] Fetching info for: ${fetchSlug}`);
+      const html = await fetchHtml(`${this.BASE_URL}/video/${fetchSlug}`, this.HEADERS);
       
+      const $ = load(html);
       const title = $('title').text().replace(' - Hentai City', '').trim() || slug;
       const coverUrl = $('meta[property="og:image"]').attr('content') || '';
       const desc = $('meta[property="og:description"]').attr('content') || '';
@@ -126,7 +152,7 @@ export default class HentaiCity {
         ]
       };
     } catch (e) {
-      console.error("HentaiCity getInfo error:", e);
+      console.error("[HentaiCity Info] Error:", e);
       return null;
     }
   }
@@ -134,11 +160,12 @@ export default class HentaiCity {
   public async getStreams(identifier: string) {
     try {
       const fetchId = identifier.endsWith('.html') ? identifier : `${identifier}.html`;
-      const res = await fetch(`${this.BASE_URL}/video/${fetchId}`, { headers: this.HEADERS });
-      const html = await res.text();
+      console.log(`[HentaiCity Streams] Fetching streams for: ${fetchId}`);
+      const html = await fetchHtml(`${this.BASE_URL}/video/${fetchId}`, this.HEADERS);
       const streamMatch = html.match(/https:\/\/[^"]+\.m3u8[^"]*/);
       
       if (streamMatch) {
+        console.log(`[HentaiCity Streams] Found m3u8 link successfully.`);
         return [{
           id: identifier.replace(/\.html$/, ''),
           url: streamMatch[0],
@@ -146,9 +173,10 @@ export default class HentaiCity {
           filesize_mbs: 0
         }];
       }
+      console.log(`[HentaiCity Streams] No m3u8 link found in HTML.`);
       return [];
     } catch (e) {
-      console.error("HentaiCity getStreams error:", e);
+      console.error("[HentaiCity Streams] Error:", e);
       return [];
     }
   }
