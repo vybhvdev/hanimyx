@@ -46,7 +46,8 @@ export default class HentaiCity {
         const link = $(el).find('a.video-title');
         if (!link.length) return;
         const href = link.attr('href') || '';
-        const slug = href.split('/').pop() || '';
+        let slug = href.split('/').pop() || '';
+        slug = slug.replace(/\.html$/, ''); // Remove .html to keep URLs clean
         const title = link.attr('title') || link.text();
         const img = $(el).find('.thumb-img img').attr('src') || '';
         const timeStr = $(el).find('.time').text().trim();
@@ -82,7 +83,8 @@ export default class HentaiCity {
 
   public async getInfo(slug: string) {
     try {
-      const res = await fetch(`${this.BASE_URL}/video/${slug}`, { headers: this.HEADERS });
+      const fetchSlug = slug.endsWith('.html') ? slug : `${slug}.html`;
+      const res = await fetch(`${this.BASE_URL}/video/${fetchSlug}`, { headers: this.HEADERS });
       if (!res.ok) return null;
       const html = await res.text();
       const $ = load(html);
@@ -91,12 +93,14 @@ export default class HentaiCity {
       const coverUrl = $('meta[property="og:image"]').attr('content') || '';
       const desc = $('meta[property="og:description"]').attr('content') || '';
       
+      const cleanSlug = slug.replace(/\.html$/, '');
+      
       return {
         hentai_video: {
-          id: slug,
+          id: cleanSlug,
           name: title,
           description: desc,
-          slug: slug,
+          slug: cleanSlug,
           poster_url: coverUrl,
           cover_url: coverUrl,
           views: 0,
@@ -109,9 +113,9 @@ export default class HentaiCity {
         hentai_franchise: { name: "", slug: "" },
         hentai_franchise_hentai_videos: [
           {
-             id: slug,
+             id: cleanSlug,
              name: title,
-             slug: slug,
+             slug: cleanSlug,
              poster_url: coverUrl
           }
         ]
@@ -124,13 +128,14 @@ export default class HentaiCity {
 
   public async getStreams(identifier: string) {
     try {
-      const res = await fetch(`${this.BASE_URL}/video/${identifier}`, { headers: this.HEADERS });
+      const fetchId = identifier.endsWith('.html') ? identifier : `${identifier}.html`;
+      const res = await fetch(`${this.BASE_URL}/video/${fetchId}`, { headers: this.HEADERS });
       const html = await res.text();
       const streamMatch = html.match(/https:\/\/[^"]+\.m3u8[^"]*/);
       
       if (streamMatch) {
         return [{
-          id: identifier,
+          id: identifier.replace(/\.html$/, ''),
           url: streamMatch[0],
           height: "1080",
           filesize_mbs: 0
