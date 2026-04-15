@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import dns from 'node:dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
   
-  const allowedDomains = ['https://hanime-cdn.com', 'https://cdn1.images.hentaicity.com', 'https://cdn2.images.hentaicity.com', 'https://www.hentaicity.com'];
-  const isAllowed = allowedDomains.some(domain => url?.startsWith(domain));
-
-  if (!url || !isAllowed) {
+  if (!url || !url.startsWith('http')) {
     return new NextResponse('Invalid URL', { status: 400 });
   }
 

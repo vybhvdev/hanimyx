@@ -1,4 +1,9 @@
 import { load } from "cheerio";
+import dns from "node:dns";
+
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch (e) {}
 
 export default class HentaiCity {
   private readonly BASE_URL = "https://www.hentaicity.com";
