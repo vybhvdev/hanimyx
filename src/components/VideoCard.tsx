@@ -1,3 +1,5 @@
+"use client";
+
 import { getUnifiedTags } from "@/lib/tags";
 
 interface VideoCardProps {
