@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import dns from "node:dns";
 import https from "node:https";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 try {
   dns.setDefaultResultOrder("ipv4first");
@@ -9,7 +10,13 @@ try {
 // Custom fetch to bypass Next.js/undici IPv6 timeout bug in Termux
 function fetchHtml(url: string, headers: Record<string, string>): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers }, (res) => {
+    const proxyUrl = process.env.PROXY_URL;
+    const options: https.RequestOptions = { headers };
+    if (proxyUrl) {
+      options.agent = new HttpsProxyAgent(proxyUrl);
+    }
+    
+    https.get(url, options, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         // Handle redirect
         let redirectUrl = res.headers.location;
